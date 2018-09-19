@@ -1,4 +1,4 @@
-# Micronets DHCP README
+# Micronets Gateway Service README
 
 ## Running
 
@@ -30,9 +30,11 @@ In this case, you can start the Micronets gateway service using:
 MICRONETS_DHCP_CONFIG=config.MockDevelopmentConfigWithWebsocket python ./runner.py
 ```
 
-## Micronets DHCP CRUD Interface
+## Micronets DHCP REST/CRUD Interface
 
-This section contains the general API definition for the Micronets gateway service.
+This section contains the general REST API definitions for the Micronets DHCP reservation service.
+
+All request URIs are prefixed by **/micronets/v1/dhcp** unless otherwise noted
 
 See the `testcases.md` document in the `test` directory for examples.
 
@@ -73,8 +75,6 @@ Currently only data type _application/json_ is supported.
 
 #### DHCP Subnet Endpoints/Operations
 
-All request URIs are prefixed by **/micronets/v1/dhcp** unless otherwise noted
-
 | Method | HTTP request                                     | Description                           |
 | ------ | ------------------------------------------------ | ------------------------------------- |
 | insert | POST /subnets                  | Add a DHCP subnet or subnets (if an array of subnets are provided). This will return a status code of 405 (Method Not Allowed) if any of the provided subnet IDs already exist. (no subnets will be added in this case) |
@@ -97,7 +97,9 @@ Currently only data type _application/json_ is supported.
 ```json
 {
     "deviceId": string,
-    "macAddress": string,
+    "macAddress": {
+       "eui48": string
+    },
     "networkAddress": {
        "ipv4": string,
        "ipv6": string
@@ -108,7 +110,8 @@ Currently only data type _application/json_ is supported.
 | Property name            | Value         | Required | Description                           | Example      |
 | ------------------------ | ------------- | -------- | ------------------------------------- | ------------- 
 | deviceId                 | string        | Y        | An alphanumeric device identifier (max 64 characters) ||
-| macAddress               | string        | Y        | A 48- or 64-bit MAC address | 00:23:12:0f:b0:26 |
+| macAddress               | nested object | Y        | The device MAC address
+| macAddress.eui48         | string        | Y        | An EUI-48 format MAC address |          00:23:12:0f:b0:26 |
 | networkAddress           | nested object | Y        | The network address definition. Either **_ipv4_** or **_ipv6_** must be specified ||
 | networkAddress.ipv4      | string        | N        | The IPv4 network definition (dotted IP) | 192.168.1.42 |
 | networkAddress.ipv6      | string        | N        | The IPv6 network definition | fe80::104c:20b6:f71a:4e55 |
@@ -139,7 +142,7 @@ All request URIs are prefixed by **/micronets/v1/dhcp** unless otherwise noted
 }
 ```
 
-#### DHCP Subnet Operation Status Codes
+#### Micronets DHCP Subnet Operation Status Codes
 
 These status codes apply to all operations described above unless otherwise noted.
 
