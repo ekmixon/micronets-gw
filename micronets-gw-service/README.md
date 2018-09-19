@@ -1,6 +1,40 @@
 # Micronets DHCP README
 
+## Running
+
+To setup a dev environment for the Micronets DHCP service, run the following steps:
+
+```
+cd ~/projects/micronets
+git clone git@github.com:cablelabs/micronets-gw.git
+cd micronets-gw/micronets-gw-service
+mkvirtualenv -r requirements.txt -a $PWD -p $(which python3) micronets-gw-service
+workon micronets-gw-service
+```
+
+If you want to access the REST API directly - running against the mock DHCP reservation adapter, use:
+
+```
+MICRONETS_DHCP_CONFIG=config.MockDevelopmentConfig python ./runner.py
+```
+
+If you want to have the DHCP service connect to a websocket for access to the REST API and to receive notifications,
+configure the WEBSOCKET_SERVER_ADDRESS, WEBSOCKET_SERVER_PORT, and WEBSOCKET_SERVER_PATH to point to the websocket
+endpoint. Note that currently only wss is supported (TLS). So the WEBSOCKET_TLS_CERTKEY_FILE must refer to a cert
+and corresponding private key that the server trusts - and WEBSOCKET_TLS_CA_CERT_FILE must refer to the certificate
+that can be used to verify the authenticity of the websocket server.
+
+In this case, you can start the Micronets gateway service using:
+
+```
+MICRONETS_DHCP_CONFIG=config.MockDevelopmentConfigWithWebsocket python ./runner.py
+```
+
 ## Micronets DHCP CRUD Interface
+
+This section contains the general API definition for the Micronets gateway service.
+
+See the `testcases.md` document in the `test` directory for examples.
 
 ### DHCP SUBNETS
 
