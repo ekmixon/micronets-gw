@@ -127,7 +127,6 @@ def check_subnet (subnet, subnet_id=None, required=True):
                                              f"in the body ('{body_subnet_id}')")
     if body_subnet_id:
         subnet_id = body_subnet_id
-    subnet_id = subnet_id.lower ()
     check_subnet_id (subnet_id, subnet)
     check_ipv4_network (subnet, subnet_id, required)
     check_nameservers (subnet, 'nameservers', required)
@@ -160,7 +159,6 @@ async def delete_all_subnets ():
 
 @app.route (dhcp_api_prefix + '/subnets/<subnet_id>', methods=['PUT'])
 async def update_subnet (subnet_id):
-    subnet_id = subnet_id.lower ()
     check_for_json_payload (request)
     check_subnet_id (subnet_id, request.path)
 
@@ -173,13 +171,11 @@ async def update_subnet (subnet_id):
 
 @app.route (dhcp_api_prefix + '/subnets/<subnet_id>', methods=['GET'])
 async def get_subnet (subnet_id):
-    subnet_id = subnet_id.lower ()
     check_subnet_id (subnet_id, request.path)
     return get_dhcp_conf_model ().get_subnet (subnet_id)
 
 @app.route (dhcp_api_prefix + '/subnets/<subnet_id>', methods=['DELETE'])
 async def delete_subnet (subnet_id):
-    subnet_id = subnet_id.lower()
     check_subnet_id (subnet_id, request.path)
     return get_dhcp_conf_model ().delete_subnet (subnet_id)
 
@@ -202,7 +198,6 @@ def check_device (device, required):
     check_for_unrecognized_entries (device, ['deviceId','macAddress','networkAddress'])
     device_id = check_field (device, 'deviceId', str, required)
     if device_id:
-        device_id = device_id.lower ()
         check_device_id (device_id, device)
 
     mac_address = check_field (device, 'macAddress', (dict, list), required)
@@ -227,7 +222,6 @@ def check_devices (devices, required):
 
 @app.route (dhcp_api_prefix + '/subnets/<subnet_id>/devices', methods=['POST'])
 async def create_devices (subnet_id):
-    subnet_id = subnet_id.lower ()
     check_for_json_payload (request)
     top_level = await request.get_json ()
     check_for_unrecognized_entries (top_level, ['device', 'devices'])
@@ -242,20 +236,16 @@ async def create_devices (subnet_id):
 
 @app.route (dhcp_api_prefix + '/subnets/<subnet_id>/devices', methods=['GET'])
 async def get_devices (subnet_id):
-    subnet_id = subnet_id.lower ()
     check_subnet_id (subnet_id, request.path)
     return get_dhcp_conf_model ().get_all_devices (subnet_id)
 
 @app.route (dhcp_api_prefix + '/subnets/<subnet_id>/devices', methods=['DELETE'])
 async def delete_devices (subnet_id):
-    subnet_id = subnet_id.lower()
     check_subnet_id (subnet_id, request.path)
     return get_dhcp_conf_model ().delete_all_devices (subnet_id)
 
 @app.route (dhcp_api_prefix + '/subnets/<subnet_id>/devices/<device_id>', methods=['PUT'])
 async def update_device (subnet_id, device_id):
-    subnet_id = subnet_id.lower ()
-    device_id = device_id.lower ()
     check_for_json_payload (request)
     check_subnet_id (subnet_id, request.path)
     check_device_id (device_id, request.path)
@@ -267,16 +257,12 @@ async def update_device (subnet_id, device_id):
 
 @app.route (dhcp_api_prefix + '/subnets/<subnet_id>/devices/<device_id>', methods=['GET'])
 async def get_device (subnet_id, device_id):
-    subnet_id = subnet_id.lower ()
-    device_id = device_id.lower ()
     check_subnet_id (subnet_id, request.path)
     check_device_id (device_id, request.path)
     return get_dhcp_conf_model ().get_device (subnet_id, device_id)
 
 @app.route (dhcp_api_prefix + '/subnets/<subnet_id>/devices/<device_id>', methods=['DELETE'])
 async def delete_device (subnet_id, device_id):
-    subnet_id = subnet_id.lower ()
-    device_id = device_id.lower ()
     check_subnet_id (subnet_id, request.path)
     check_device_id (device_id, request.path)
     return get_dhcp_conf_model ().delete_device (subnet_id, device_id)

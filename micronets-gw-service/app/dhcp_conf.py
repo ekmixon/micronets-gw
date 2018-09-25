@@ -49,7 +49,7 @@ class DHCPConf:
             raise InvalidUsage (404, message=f"Subnet '{subnet_id}' doesn't exist in device list")
 
     def check_subnet_unique (self, subnet):
-        subnet_id = subnet ['subnetId'].lower ()
+        subnet_id = subnet ['subnetId']
         if subnet_id in self.subnet_list:
             raise InvalidUsage (409, message=f"Subnet '{subnet_id}' already exists")
 
@@ -90,7 +90,7 @@ class DHCPConf:
             self.check_subnet_unique (subnet)
             self.check_subnet_params (subnet)
         for subnet in subnets:
-            subnet_id = subnet ['subnetId'].lower ()
+            subnet_id = subnet ['subnetId']
             self.subnet_list [subnet_id] = subnet
             self.device_lists [subnet_id] = {}
         self.update_conf ()
@@ -99,7 +99,7 @@ class DHCPConf:
     def create_subnet (self, subnet):
         self.check_subnet_unique (subnet)
         self.check_subnet_params (subnet)
-        subnet_id = subnet ['subnetId'].lower ()
+        subnet_id = subnet ['subnetId']
         self.subnet_list [subnet_id] = subnet
         self.device_lists [subnet_id] = {}
         self.update_conf ()
@@ -117,7 +117,7 @@ class DHCPConf:
         self.check_subnet_reference (subnet_id)
         target_subnet = self.subnet_list [subnet_id]
         if 'subnetId' in subnet_update:
-            subnet_update_id = subnet_update ['subnetId'].lower ()
+            subnet_update_id = subnet_update ['subnetId']
             if subnet_update_id != subnet_id:
                 raise InvalidUsage (409, message=f"Update can only update subnet '{subnet_id}' "
                                                  f"('{subnet_update_id}' provided)")
@@ -243,7 +243,7 @@ class DHCPConf:
         logger.info (f"DHCPConf.create_device ({device}, {subnet_id})")
         self.check_subnet_reference (subnet_id)
         device_list = self.device_lists [subnet_id]
-        device_id = device ['deviceId'].lower ()
+        device_id = device ['deviceId']
         subnet = self.subnet_list [subnet_id]
         self.check_device_unique (device_id, subnet_id)
         self.check_device_for_subnet (device, subnet)
@@ -259,7 +259,7 @@ class DHCPConf:
         subnet = self.subnet_list [subnet_id]
         # Check that all the supplied deviceIds are unique before incorporating them
         for device in devices:
-            device_id = device ['deviceId'].lower ()
+            device_id = device ['deviceId']
             self.check_device_unique (device_id, subnet_id)
             self.check_device_for_subnet (device, subnet)
             self.check_device_mac_unique (device)
@@ -267,7 +267,7 @@ class DHCPConf:
 
         device_list = self.device_lists [subnet_id]
         for device in devices:
-            device_id = device ['deviceId'].lower ()
+            device_id = device ['deviceId']
             device_list [device_id] = device
         self.update_conf ()
         return jsonify ({'devices': devices}), 201
@@ -279,7 +279,7 @@ class DHCPConf:
         device_list = self.device_lists [subnet_id]
         target_device = device_list [device_id]
         if 'deviceId' in device_update:
-            device_update_id = device_update ['deviceId'].lower ()
+            device_update_id = device_update ['deviceId']
             if device_update_id != device_id:
                 raise InvalidUsage (409, message=f"Update can only update device '{device_id}' "
                                                  f"('{device_update_id}' provided)")
