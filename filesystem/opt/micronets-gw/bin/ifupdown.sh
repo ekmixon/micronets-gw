@@ -17,6 +17,9 @@
 # Have a look at /usr/share/doc/openvswitch-switch/README.Debian
 # for more information about configuring the /etc/network/interfaces.
 
+OVS_DB_CONF=/etc/openvswitch/conf.db
+OVS_DB_SCHEMA=/usr/share/openvswitch/vswitch.ovsschema
+
 debug_log() {
     logger -t "micronets-ovs-ifupdown" -- "$@"
 }
@@ -38,10 +41,12 @@ if (ovs_vsctl --version) > /dev/null 2>&1; then :; else
     exit 0
 fi
 
-if /etc/init.d/openvswitch-switch status > /dev/null 2>&1; then :; else
-    debug_log "starting openvswitch-switch service"
-    /etc/init.d/openvswitch-switch start
-fi
+debug_log "Stopping openvswitch-switch service"
+systemctl stop openvswitch-switch.service
+rm $OVS_DB_CONF
+ovsdb-tool create $OVS_DB_CONF $OVS_DB_SCHEMA
+debug_log "Starting openvswitch-switch service"
+systemctl start openvswitch-switch.service
 
 if [ "${MODE}" = "start" ]; then
     eval OVS_EXTRA=\"${IF_OVS_EXTRA}\"
@@ -79,8 +84,10 @@ if [ "${MODE}" = "start" ]; then
                 # Clear ALL Flows and set NORMAL .aka L2 Learning switch mode.
                 ovs-ofctl del-flows ${IFACE}
                 ovs-ofctl add-flow ${IFACE} "table=0 priority=0 actions=normal"
-                ;;
 
+
+
+                ;;
         OVSPort)
                 ovs_vsctl -- --may-exist add-port "${IF_OVS_BRIDGE}"\
                     "${IFACE}" ${IF_OVS_OPTIONS} \
