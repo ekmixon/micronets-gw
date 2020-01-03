@@ -46,6 +46,12 @@ logging.basicConfig (level=logging_level, filename=logging_filename, filemode=lo
                      format='%(asctime)s %(name)s: %(levelname)s %(message)s')
 print (f"Logging to logfile {logging_filename} (level {logging_level})")
 
+def log_except_hook(*exc_info):
+    text = "".join(traceback.format_exception(*exc_info))
+    logging.warning("Unhandled exception: %s", text)
+
+sys.excepthook = log_except_hook
+
 logger.info (f"Loading app module using {config}")
 
 def get_logger():
