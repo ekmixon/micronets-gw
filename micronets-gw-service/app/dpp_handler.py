@@ -102,19 +102,9 @@ class DPPHandler(WSMessageHandler, HostapdAdapter.HostapdCLIEventHandler):
         qrcode_id = await add_qrcode_cmd.get_qrcode_id()
         logger.info(f"{__name__}:   DPP QRCode ID: {qrcode_id}")
 
-        if 'dpp' in akms:
-            dpp_auth_init_cmd = HostapdAdapter.DPPAuthInitCommand(self.dpp_configurator_id, qrcode_id, self.ssid,
-                                                                  freq=self.freq)
-        elif 'psk' in akms:
-            psk = device['psk']
-            if len(psk) == 64:
-                dpp_auth_init_cmd = HostapdAdapter.DPPAuthInitCommand(self.dpp_configurator_id, qrcode_id, self.ssid,
-                                                                      psk=psk, freq=self.freq)
-            else:
-                dpp_auth_init_cmd = HostapdAdapter.DPPAuthInitCommand(self.dpp_configurator_id, qrcode_id, self.ssid,
-                                                                      passphrase=psk, freq=self.freq)
-        else:
-            raise InvalidUsage(503, message="Only PSK- and DPP-based on-boarding are currently supported")
+        psk = device.get("psk")
+        dpp_auth_init_cmd = HostapdAdapter.DPPAuthInitCommand(self.dpp_configurator_id, qrcode_id, self.ssid,
+                                                              akms, psk=psk, freq=self.freq)
 
         self.pending_onboard = {"micronet":micronet, "device": device, "onboard_params": onboard_params}
         asyncio.ensure_future(self.send_dpp_onboard_event(micronet, device, DPPHandler.EVENT_ONBOARDING_STARTED, 

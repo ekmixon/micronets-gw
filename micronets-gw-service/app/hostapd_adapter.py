@@ -414,27 +414,51 @@ class HostapdAdapter:
             return self.success
 
     class DPPAuthInitCommand(HostapdCLICommand):
-        def __init__ (self, configurator_id, qrcode_id, ssid, psk=None, passphrase=None, freq=None,
+        def __init__ (self, configurator_id, qrcode_id, ssid, akms, psk=None, freq=None,
                       event_loop=asyncio.get_event_loop()):
             super().__init__(event_loop)
             self.configurator_id = configurator_id
             self.qrcode_id = qrcode_id
             self.ssid = ssid
-            self.psk = psk
-            self.passphrase = passphrase
+            self.akms = akms
             self.freq = freq
             self.success = False
+            self.psk = None
+            self.passphrase_asciihex = None
+            if psk:
+                if len(psk) == 64:
+                    self.psk = psk
+                else:
+                    self.passphrase_asciihex = psk.encode("ascii").hex()
 
         def get_command_string(self):
             ssid_asciihex = self.ssid.encode("ascii").hex()
             cmd = f"dpp_auth_init peer={self.qrcode_id} ssid={ssid_asciihex} configurator={self.configurator_id}"
+            akms_str = None
+
+            # Currently allowed configs: psk, sae, dpp, psk+sae, dpp+sae, dpp+psk+sae
+            # (see dpp_configuration_alloc in src/common/dpp.c of hostap sources)
+            if 'dpp' in self.akms:
+                akms_str = "dpp"
+            if 'psk' in self.akms:
+                if akms_str:
+                    akms_str += "+psk+sae"
+                else:
+                    akms_str = "psk+sae"
+            elif 'sae' in self.akms:
+                if akms_str:
+                    akms_str += "+sae"
+                else:
+                    akms_str = "sae"
+            if not akms_str:
+                raise Exception(f"No valid akms elements found (akms: {self.akms})")
+            cmd += f" conf=sta-{akms_str}"
+
             if self.psk:
-                cmd += f" conf=sta-psk psk={self.psk}"
-            elif self.passphrase:
-                pass_asciihex = self.passphrase.encode("ascii").hex()
-                cmd += f" conf=sta-psk pass={pass_asciihex}"
-            else:
-                cmd += " conf=sta-dpp"
+                cmd += f" psk={self.psk}"
+
+            if self.passphrase_asciihex:
+                cmd += f" pass={self.passphrase_asciihex}"
 
             if self.freq:
                 cmd += f" neg_freq={self.freq}"
