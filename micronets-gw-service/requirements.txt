@@ -3,8 +3,8 @@
 #
 # Example setup using mkvirtualenv (part of py-virtualenvwrapper):
 #
-# mkvirtualenv -r <micronets-dhcp-project-dir>/requirements.txt -a <micronets-dhcp-project-dir> -p python3 micronets-dhcp
-# workon -c micronets-dhcp
+# mkvirtualenv -r <micronets-gw-service-dir>/requirements.txt -a <micronets-gw-service-dir> -p python3 micronets-gw-service
+# workon -c micronets-gw-service
 #
 # Or installing using pip (e.g. into an existing env)
 #
