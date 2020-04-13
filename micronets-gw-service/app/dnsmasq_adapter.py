@@ -18,7 +18,7 @@ class DnsMasqAdapter:
     # # Micronet: testmicronet001, interface: enxac7f3ee61832
     # # Micronet: wired-micronet-1, interface: enp3s0, vlan: 2112
     dhcp_range_prefix_re = re.compile ('^\s*#\s*Micronet:\s*(\w.[\w-]*)\s*,'
-                                       '\s*interface:\s*(\w+)(?:\s*,\s*vlan:\s*([0-9]+))?\s*$',
+                                       '\s*interface:\s*(\w+)\s*(?:,\s*vlan:\s*([0-9]+)?\s*)?$',
                                        re.ASCII)
 
     # dhcp-range=set:testmicronet001,10.40.0.0,static,255.255.255.0,3m
@@ -256,10 +256,10 @@ class DnsMasqAdapter:
             # # Micronet: wired-micronet-1, interface: enp3s0
             interface = micronet ['interface']
             if 'vlan' in micronet:
-                vlan = micronet ['vlan']
+                vlan_elem = f", vlan: {micronet ['vlan']}"
             else:
-                vlan = None
-            outfile.write ("# Micronet: {}, interface: {}, vlan: {}\n".format (micronet_id, interface, vlan))
+                vlan_elem = ""
+            outfile.write (f"# Micronet: {micronet_id}, interface: {interface}{vlan_elem}\n")
             ipv4_params = micronet ['ipv4Network']
             network_addr = ipv4_params['network']
             netmask = ipv4_params ['mask']
