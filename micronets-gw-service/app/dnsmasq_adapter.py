@@ -139,7 +139,8 @@ class DnsMasqAdapter:
                 micronet ['micronetId'] = micronet_id
                 micronet ['ipv4Network'] = {'network' : str (network.network_address), 'mask' : str (network.netmask)}
                 micronet ['interface'] = prefix_interface
-                micronet ['vlan'] = prefix_vlan
+                if prefix_vlan:
+                    micronet ['vlan'] = prefix_vlan
                 micronets [micronet_id] = micronet
                 devices_list [micronet_id] = {}
                 prefix_micronet_id = None
