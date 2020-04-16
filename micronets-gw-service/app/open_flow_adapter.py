@@ -364,7 +364,7 @@ class OpenFlowAdapter(HostapdAdapter.HostapdCLIEventHandler):
                                     f"actions=resubmit(,{OpenFlowAdapter.to_localhost_table})\n")
                 # Add the block rule to prevent micronet-to-micronet traffic without explicit rules
                 flow_file.write(f"add table={OpenFlowAdapter.block_to_micronets_table},priority=400, "
-                                f"ip,ip_dst={micronet_network}/{micronet_mask}, actions={OpenFlowAdapter.drop_action})\n")
+                                f"ip,ip_dst={micronet_network}/{micronet_mask}, actions={OpenFlowAdapter.drop_action}\n")
 
                 if micronet_vlan:
                     # The gateway sets up the ovs port numbers to match the vlan IDs (e.g. vlan 101 -> port 101)
