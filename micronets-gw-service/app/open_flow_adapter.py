@@ -351,25 +351,12 @@ class OpenFlowAdapter(HostapdAdapter.HostapdCLIEventHandler):
                 if not micronet_port:
                     raise Exception(f"Cannot find an ovs port designation for micronet {micronet_id} interface {micronet_int}. "
                                     f"Check the OVSPort entries in the gateway /etc/network/interfaces file")
-                # Add rules for handling traffic comping from Micronets
-                flow_file.write (f"  # table={OpenFlowAdapter.start_table},priority=500: Micronet {micronet_id}"
-                                 f" (interface {micronet_int}, micronet {micronet_network}/{micronet_mask})\n")
-                # If the traffic is destined from the same network it originated, just output it
-                flow_file.write(f"add table={OpenFlowAdapter.start_table},priority=500, in_port={micronet_port}, "
-                                f"ip,ip_dst={micronet_network}/{micronet_mask}, actions=output:in_port\n")
-                # Handle traffic coming from Micronets for possible egress
-                flow_file.write(f"add table={OpenFlowAdapter.start_table},priority=400, in_port={micronet_port}, "
-                                f"actions=resubmit(,{OpenFlowAdapter.from_micronets_table})\n")
                 # Allow EAPoL traffic to host from wifi port
                 if micronet_int in self.bss.values():
                     # For wlan links, EAPoL packets need to be routed to hostapd to allow authentication
                     flow_file.write(f"add table={OpenFlowAdapter.from_micronets_table},priority=460, "
                                     f"in_port={micronet_port},dl_type=0x888e, "
                                     f"actions=resubmit(,{OpenFlowAdapter.to_localhost_table})\n")
-                # Add the block rule to prevent micronet-to-micronet traffic without explicit rules
-                flow_file.write(f"add table={OpenFlowAdapter.block_to_micronets_table},priority=400, "
-                                f"ip,ip_dst={micronet_network}/{micronet_mask}, actions={OpenFlowAdapter.drop_action}\n")
-
                 if micronet_vlan:
                     # The gateway sets up the ovs port numbers to match the vlan IDs (e.g. vlan 101 -> port 101)
                     flow_file.write(f"add table={OpenFlowAdapter.start_table},priority=400, in_port={micronet_vlan}, "
@@ -377,6 +364,20 @@ class OpenFlowAdapter(HostapdAdapter.HostapdCLIEventHandler):
                     port_for_micronet_devices = micronet_vlan
                 else:
                     port_for_micronet_devices = micronet_port
+
+                # Add rules to start table for handling traffic coming from Micronets
+                flow_file.write (f"  # table={OpenFlowAdapter.start_table},priority=500: Micronet {micronet_id}"
+                                 f" (interface {micronet_int}, micronet {micronet_network}/{micronet_mask})\n")
+                # If the traffic is destined from the same network it originated, just output it
+                flow_file.write(f"add table={OpenFlowAdapter.start_table},priority=425, in_port={port_for_micronet_devices}, "
+                                f"ip,ip_dst={micronet_network}/{micronet_mask}, actions=output:in_port\n")
+                # Handle traffic coming from Micronets for possible egress
+                flow_file.write(f"add table={OpenFlowAdapter.start_table},priority=400, in_port={port_for_micronet_devices}, "
+                                f"actions=resubmit(,{OpenFlowAdapter.from_micronets_table})\n")
+
+                # Add the block rule to prevent micronet-to-micronet traffic without explicit rules
+                flow_file.write(f"add table={OpenFlowAdapter.block_to_micronets_table},priority=400, "
+                                f"ip,ip_dst={micronet_network}/{micronet_mask}, actions={OpenFlowAdapter.drop_action}\n")
 
                 # Walk the devices in the micronet and create rules
                 for device_id, device in device_lists [micronet_id].items ():
