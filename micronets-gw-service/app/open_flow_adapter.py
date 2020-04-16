@@ -359,6 +359,9 @@ class OpenFlowAdapter(HostapdAdapter.HostapdCLIEventHandler):
                                     f"actions=resubmit(,{OpenFlowAdapter.to_localhost_table})\n")
                 if micronet_vlan:
                     # The gateway sets up the ovs port numbers to match the vlan IDs (e.g. vlan 101 -> port 101)
+                    flow_file.write(f"add table={OpenFlowAdapter.start_table},priority=425, "
+                                    f"in_port={micronet_vlan}, "
+                                    f"ip,ip_dst={micronet_network}/{micronet_mask}, actions=output:in_port\n")
                     flow_file.write(f"add table={OpenFlowAdapter.start_table},priority=400, in_port={micronet_vlan}, "
                                     f"actions=resubmit(,{OpenFlowAdapter.from_micronets_table})\n")
                     port_for_micronet_devices = micronet_vlan
@@ -369,10 +372,10 @@ class OpenFlowAdapter(HostapdAdapter.HostapdCLIEventHandler):
                 flow_file.write (f"  # table={OpenFlowAdapter.start_table},priority=500: Micronet {micronet_id}"
                                  f" (interface {micronet_int}, micronet {micronet_network}/{micronet_mask})\n")
                 # If the traffic is destined from the same network it originated, just output it
-                flow_file.write(f"add table={OpenFlowAdapter.start_table},priority=425, in_port={port_for_micronet_devices}, "
+                flow_file.write(f"add table={OpenFlowAdapter.start_table},priority=425, in_port={micronet_port}, "
                                 f"ip,ip_dst={micronet_network}/{micronet_mask}, actions=output:in_port\n")
                 # Handle traffic coming from Micronets for possible egress
-                flow_file.write(f"add table={OpenFlowAdapter.start_table},priority=400, in_port={port_for_micronet_devices}, "
+                flow_file.write(f"add table={OpenFlowAdapter.start_table},priority=400, in_port={micronet_port}, "
                                 f"actions=resubmit(,{OpenFlowAdapter.from_micronets_table})\n")
 
                 # Add the block rule to prevent micronet-to-micronet traffic without explicit rules
