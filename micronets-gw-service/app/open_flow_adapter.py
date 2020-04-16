@@ -338,6 +338,7 @@ class OpenFlowAdapter(HostapdAdapter.HostapdCLIEventHandler):
             for micronet_id, micronet in micronet_list.items ():
                 micronet_int = micronet ['interface']
                 micronet_network = micronet ['ipv4Network']['network']
+                micronet_mask = micronet ['ipv4Network']['mask']
                 logger.info (f"Creating flow rules for micronet {micronet_id} (interface {micronet_int})")
 
                 if micronet_int not in self.ovs_micronet_interfaces:
@@ -352,7 +353,7 @@ class OpenFlowAdapter(HostapdAdapter.HostapdCLIEventHandler):
                                     f"Check the OVSPort entries in the gateway /etc/network/interfaces file")
                 # Add the rule to allow traffic from the interface port for te micronet
                 flow_file.write (f"  # table={OpenFlowAdapter.start_table},priority=400: Micronet {micronet_id}"
-                                 f" (interface {micronet_int}, micronet {micronet_network})\n")
+                                 f" (interface {micronet_int}, micronet {micronet_network}/{micronet_mask})\n")
                 flow_file.write(f"add table={OpenFlowAdapter.start_table},priority=400, in_port={micronet_port}, "
                                 f"actions=resubmit(,{OpenFlowAdapter.from_micronets_table})\n")
                 # Allow EAPoL traffic to host from wifi port
@@ -363,7 +364,7 @@ class OpenFlowAdapter(HostapdAdapter.HostapdCLIEventHandler):
                                     f"actions=resubmit(,{OpenFlowAdapter.to_localhost_table})\n")
                 # Add the block rule to prevent micronet-to-micronet traffic without explicit rules
                 flow_file.write(f"add table={OpenFlowAdapter.block_to_micronets_table},priority=400, "
-                                f"ip,ip_dst={micronet_network}, actions={OpenFlowAdapter.drop_action})\n")
+                                f"ip,ip_dst={micronet_network}/{micronet_mask}, actions={OpenFlowAdapter.drop_action})\n")
 
                 if micronet_vlan:
                     # The gateway sets up the ovs port numbers to match the vlan IDs (e.g. vlan 101 -> port 101)
