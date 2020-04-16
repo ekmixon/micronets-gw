@@ -4,7 +4,7 @@ from pathlib import Path
 from .utils import blank_line_re, comment_line_re, get_ipv4_hostports_for_hostportspec, parse_portspec, \
                    parse_hostportspec, unroll_hostportspec_list, mac_addr_re, parse_macportspec
 
-from subprocess import call, check_call
+from subprocess import check_output
 from .hostapd_adapter import HostapdAdapter
 
 logger = logging.getLogger ('micronets-gw-service')
@@ -402,16 +402,11 @@ class OpenFlowAdapter(HostapdAdapter.HostapdCLIEventHandler):
             run_cmd = self.apply_openflow_command.format (**{"ovs_bridge": self.bridge_name,
                                                              "flow_file": flow_file_path})
             try:
-                logger.info ("Running: " + run_cmd)
-                status_code = check_call (run_cmd.split ())
-                if status_code is 0:
-                    logger.info(f"Flow application command returned status code {status_code}")
-                else:
-                    logger.warning(f"ERROR APPLYING FLOWS (returned status code {status_code})")
-
-
+                logger.info ("Applying flows using: " + run_cmd)
+                check_output (run_cmd.split(), stderr=subprocess.STDOUT)
+                logger.info(f"SUCCESSFULLY APPLIED FLOWS")
             except Exception as e:
-                logger.warning (f"ERROR: Flow application command failed: {e}")
+                logger.warning(f"ERROR APPLYING FLOWS: {e}")
 
     async def create_flows_for_device(self, in_port, device_mac, device, micronet, outfile):
         try:
