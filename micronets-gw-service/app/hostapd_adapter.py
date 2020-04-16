@@ -57,7 +57,7 @@ class HostapdAdapter:
             logger.info(f"HostapdAdapter.update: No PSK file configured, so nothing to do")
 
         with self.hostapd_psk_path.open ('w') as outfile:
-            bss_list = self.get_status_var('bss').values()
+            bss_list = list(self.get_status_var('bss').values())
             logger.info (f"HostapdAdapter.update: Writing PSKs to {self.hostapd_psk_path.absolute ()} "
                          f"for BSS {bss_list}")
             outfile.write ("# THIS WPA-PSK FILE IS MANAGED BY THE MICRONETS GATEWAY SERVICE\n\n")
@@ -69,7 +69,7 @@ class HostapdAdapter:
 
                 if interface_id not in bss_list:
                     logger.info(f"HostapdAdapter.update: micronet {micronet_id} interface {interface_id} "
-                                f"not in BSS list ({bss_list}) - skipping")
+                                f"not in BSS list {bss_list} - skipping")
                     continue
 
                 if not vlan_id:
