@@ -454,7 +454,7 @@ class OpenFlowAdapter(HostapdAdapter.HostapdCLIEventHandler):
                       f"Out-Rules for Device {device['deviceId']} (mac {device_mac})\n")
         # Always allow a micronet device to talk to the gateway (need to avoid the micronet-to-micronet filters)
         outfile.write(f"add table={OpenFlowAdapter.from_micronets_table},priority={cur_priority}, "
-                      f"in_port={in_port},dl_src={device_mac}, ip_dst={micronet_gateway}, "
+                      f"in_port={in_port},dl_src={device_mac},ip,ip_dst={micronet_gateway}, "
                       f"actions=resubmit(,{OpenFlowAdapter.to_localhost_table})\n\n")
         cur_priority = 800
 
