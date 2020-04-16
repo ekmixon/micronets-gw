@@ -4,7 +4,7 @@ from pathlib import Path
 from .utils import blank_line_re, comment_line_re, get_ipv4_hostports_for_hostportspec, parse_portspec, \
                    parse_hostportspec, unroll_hostportspec_list, mac_addr_re, parse_macportspec
 
-from subprocess import check_output
+from subprocess import check_output, STDOUT
 from .hostapd_adapter import HostapdAdapter
 
 logger = logging.getLogger ('micronets-gw-service')
@@ -403,7 +403,7 @@ class OpenFlowAdapter(HostapdAdapter.HostapdCLIEventHandler):
                                                              "flow_file": flow_file_path})
             try:
                 logger.info ("Applying flows using: " + run_cmd)
-                check_output (run_cmd.split(), stderr=subprocess.STDOUT)
+                check_output (run_cmd.split(), stderr=STDOUT)
                 logger.info(f"SUCCESSFULLY APPLIED FLOWS")
             except Exception as e:
                 logger.warning(f"ERROR APPLYING FLOWS: {e}")
