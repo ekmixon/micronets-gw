@@ -359,9 +359,6 @@ class OpenFlowAdapter(HostapdAdapter.HostapdCLIEventHandler):
                                     f"actions=resubmit(,{OpenFlowAdapter.to_localhost_table})\n")
                 if micronet_vlan:
                     # The gateway sets up the ovs port numbers to match the vlan IDs (e.g. vlan 101 -> port 101)
-                    flow_file.write(f"add table={OpenFlowAdapter.start_table},priority=425, "
-                                    f"in_port={micronet_vlan}, "
-                                    f"ip,ip_dst={micronet_network}/{micronet_mask}, actions=output:in_port\n")
                     flow_file.write(f"add table={OpenFlowAdapter.start_table},priority=400, in_port={micronet_vlan}, "
                                     f"actions=resubmit(,{OpenFlowAdapter.from_micronets_table})\n")
                     port_for_micronet_devices = micronet_vlan
@@ -371,9 +368,6 @@ class OpenFlowAdapter(HostapdAdapter.HostapdCLIEventHandler):
                 # Add rules to start table for handling traffic coming from Micronets
                 flow_file.write (f"  # table={OpenFlowAdapter.start_table},priority=500: Micronet {micronet_id}"
                                  f" (interface {micronet_int}, micronet {micronet_network}/{micronet_mask})\n")
-                # If the traffic is destined from the same network it originated, just output it
-                flow_file.write(f"add table={OpenFlowAdapter.start_table},priority=425, in_port={micronet_port}, "
-                                f"ip,ip_dst={micronet_network}/{micronet_mask}, actions=output:in_port\n")
                 # Handle traffic coming from Micronets for possible egress
                 flow_file.write(f"add table={OpenFlowAdapter.start_table},priority=400, in_port={micronet_port}, "
                                 f"actions=resubmit(,{OpenFlowAdapter.from_micronets_table})\n")
@@ -453,10 +447,16 @@ class OpenFlowAdapter(HostapdAdapter.HostapdCLIEventHandler):
         return combined_rule
 
     async def create_out_rules_for_device(self, in_port, device_mac, device, micronet, outfile):
-        cur_priority = 800
+        cur_priority = 850
         device_id = device['deviceId']
+        micronet_gateway = micronet['ipv4Network']['gateway']
         outfile.write(f"  # table={OpenFlowAdapter.from_micronets_table},priority={cur_priority}: "
                       f"Out-Rules for Device {device['deviceId']} (mac {device_mac})\n")
+        # Always allow a micronet device to talk to the gateway (need to avoid the micronet-to-micronet filters)
+        outfile.write(f"add table={OpenFlowAdapter.from_micronets_table},priority={cur_priority}, "
+                      f"in_port={in_port},dl_src={device_mac}, ip_dst={micronet_gateway}, "
+                      f"actions=resubmit(,{OpenFlowAdapter.to_localhost_table})\n\n")
+        cur_priority = 800
 
         out_rules = device.get('outRules', None)
         if not out_rules:
