@@ -354,7 +354,10 @@ class OpenFlowAdapter(HostapdAdapter.HostapdCLIEventHandler):
                 # Add the rule to allow traffic from the interface port for te micronet
                 flow_file.write (f"  # table={OpenFlowAdapter.start_table},priority=400: Micronet {micronet_id}"
                                  f" (interface {micronet_int}, micronet {micronet_network}/{micronet_mask})\n")
+                # If the traffic is detined from the same network it originated, just output it
                 flow_file.write(f"add table={OpenFlowAdapter.start_table},priority=400, in_port={micronet_port}, "
+                                f"ip,ip_dst={micronet_network}/{micronet_mask}, actions=output:in_port\n")
+                flow_file.write(f"add table={OpenFlowAdapter.start_table},priority=500, in_port={micronet_port}, "
                                 f"actions=resubmit(,{OpenFlowAdapter.from_micronets_table})\n")
                 # Allow EAPoL traffic to host from wifi port
                 if micronet_int in self.bss.values():
