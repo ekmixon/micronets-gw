@@ -4,7 +4,7 @@ from pathlib import Path
 from .utils import blank_line_re, comment_line_re, get_ipv4_hostports_for_hostportspec, parse_portspec, \
                    parse_hostportspec, unroll_hostportspec_list, mac_addr_re, parse_macportspec
 
-from subprocess import call
+from subprocess import call, check_call
 from .hostapd_adapter import HostapdAdapter
 
 logger = logging.getLogger ('micronets-gw-service')
@@ -363,7 +363,7 @@ class OpenFlowAdapter(HostapdAdapter.HostapdCLIEventHandler):
                                     f"actions=resubmit(,{OpenFlowAdapter.to_localhost_table})\n")
                 # Add the block rule to prevent micronet-to-micronet traffic without explicit rules
                 flow_file.write(f"add table={OpenFlowAdapter.block_to_micronets_table},priority=400, "
-                                f"ip,ip_dst={micronet_network} actions={OpenFlowAdapter.drop_action})\n")
+                                f"ip,ip_dst={micronet_network}, actions={OpenFlowAdapter.drop_action})\n")
 
                 if micronet_vlan:
                     # The gateway sets up the ovs port numbers to match the vlan IDs (e.g. vlan 101 -> port 101)
@@ -402,8 +402,13 @@ class OpenFlowAdapter(HostapdAdapter.HostapdCLIEventHandler):
                                                              "flow_file": flow_file_path})
             try:
                 logger.info ("Running: " + run_cmd)
-                status_code = call (run_cmd.split ())
-                logger.info (f"Flow application command returned status code {status_code}")
+                status_code = check_call (run_cmd.split ())
+                if status_code is 0:
+                    logger.info(f"Flow application command returned status code {status_code}")
+                else:
+                    logger.warning(f"ERROR APPLYING FLOWS (returned status code {status_code})")
+
+
             except Exception as e:
                 logger.warning (f"ERROR: Flow application command failed: {e}")
 
@@ -453,7 +458,7 @@ class OpenFlowAdapter(HostapdAdapter.HostapdCLIEventHandler):
         if not out_rules:
             # Allow all data out if no out rules
             outfile.write(f"add table={OpenFlowAdapter.from_micronets_table},priority={cur_priority}, "
-                          f"in_port={in_port},dl_src={device_mac} "
+                          f"in_port={in_port},dl_src={device_mac}, "
                           f"actions=resubmit(,{OpenFlowAdapter.block_to_micronets_table})\n\n")
         else:
             allow_action = f"resubmit(,{OpenFlowAdapter.to_localhost_table})"
