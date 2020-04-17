@@ -111,7 +111,7 @@ class DnsMasqAdapter:
                 prefix_host_allow_hosts = json.loads(prefix_host_allow_hosts_str)
                 prefix_host_deny_hosts = json.loads(prefix_host_deny_hosts_str)
                 logger.info(f"DnsMasqAdapter.parse_conffile:  Found host {prefix_host_id}: "
-                            f"outRules:{prefix_host_out_rules}, inRules:{prefix_host_in_rules}"
+                            f"outRules:{prefix_host_out_rules}, inRules:{prefix_host_in_rules}, "
                             f"allowHosts:{prefix_host_allow_hosts}, denyHosts:{prefix_host_deny_hosts}")
             if (comment_line_re.match (line)):
                 continue
@@ -158,8 +158,6 @@ class DnsMasqAdapter:
                     raise Exception ("Invalid router/gateway address '{}'".format (router_address))
                 micronet = micronets [micronet_id]
                 logger.debug (f"DnsMasqAdapter.parse_conffile: micronet {micronet_id}: {micronet}")
-                logger.debug (f"DnsMasqAdapter.parse_conffile: micronet {micronet_id}"
-                              f"ipv4Network: {micronet ['ipv4Network']}")
                 micronet ['ipv4Network']['gateway'] = str (addr)
                 continue
             dhcp_range_dns_server_match = self.dhcp_range_dns_server_re.match (line)
@@ -215,7 +213,8 @@ class DnsMasqAdapter:
                     device ['allowHosts'] = prefix_host_allow_hosts
                 if len(prefix_host_deny_hosts) > 0:
                     device ['denyHosts'] = prefix_host_deny_hosts
-                device ['psk'] = prefix_host_psk_str
+                if prefix_host_psk_str:
+                    device ['psk'] = prefix_host_psk_str
                 device_list = devices_list [micronet_id]
                 device_list [prefix_host_id] = device
                 prefix_host_id = None
@@ -308,7 +307,7 @@ class DnsMasqAdapter:
                     deny_hosts = json.dumps(device['denyHosts'])
                 else:
                     deny_hosts = []
-                psk = device.get('psk')
+                psk = device.get('psk',"")
                 if (len(device_id) <= 12):
                     short_device_id = device_id
                 else:
