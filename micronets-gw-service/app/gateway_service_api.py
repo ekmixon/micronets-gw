@@ -125,10 +125,13 @@ def check_vlan (container, field_name, required):
             raise InvalidUsage(400, message=f"Supplied vlan ID '{vlan}' in '{container}' field"
                                     f"'{field_name}' is not valid: vlans must be between 1 and 4094")
 
-
 @app.route (api_prefix + '/interfaces', methods=['GET'])
-async def get_interfaces (int_type):
+async def get_interfaces ():
     return await get_conf_model().get_all_interfaces()
+
+@app.route (api_prefix + '/interfaces/wireless', methods=['GET'])
+async def get_wireless_interfaces ():
+    return await get_conf_model().get_wireless_interfaces()
 
 def check_micronet (micronet, micronet_id=None, required=True):
     check_for_unrecognized_entries (micronet, ['micronetId','ipv4Network','nameservers','interface','vlan'])

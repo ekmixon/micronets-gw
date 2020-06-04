@@ -63,23 +63,37 @@ class GatewayServiceConf:
     #
     # Interface Operations
     #
-    def get_all_interfaces(self):
-        logger.info (f"GatewayServiceConf.get_all_interfaces()")
+    def retrieve_wireless_interfaces(self):
         interfaces = []
         if self.hostapd_adapter:
             bss = self.hostapd_adapter.get_status_var('bss')
             bssid = self.hostapd_adapter.get_status_var('bssid')
             ssid = self.hostapd_adapter.get_status_var('ssid')
             sta_count = self.hostapd_adapter.get_status_var('num_sta')
+            logger.debug(f"GatewayServiceConf get_all_interfaces: bss: {bss}")
+            logger.debug(f"GatewayServiceConf get_all_interfaces: bssid: {bssid}")
+            logger.debug(f"GatewayServiceConf get_all_interfaces: ssid: {ssid}")
 
-            for n in range(0, len(bss):
+            for k in bss.keys():
                 int_entry = {"medium": "wifi",
-                             "sysname": bss[n],
-                             "macAddress": bssid[n],
-                             "ssid": ssid[n]}
+                             "sysname": bss[k],
+                             "macAddress": bssid[k],
+                             "ssid": ssid[k]}
+                logger.info(f"GatewayServiceConf: interface {k}: {json.dumps(int_entry)}")
                 interfaces.append(int_entry)
+        return interfaces
 
-        return jsonify({'interfaces': interfaces), 200
+    async def get_all_interfaces(self):
+        logger.info (f"GatewayServiceConf.get_all_interfaces()")
+        interfaces = []
+        interfaces += self.retrieve_wireless_interfaces()
+        # TODO: Return wired interfaces
+
+        return jsonify({'interfaces': interfaces}), 200
+
+    async def get_wireless_interfaces(self):
+        logger.info (f"GatewayServiceConf.get_wireless_interfaces()")
+        return jsonify({'interfaces': self.retrieve_wireless_interfaces()}), 200
 
     #
     # micronet Operations
