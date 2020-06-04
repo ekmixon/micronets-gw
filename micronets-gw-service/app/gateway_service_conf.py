@@ -61,6 +61,27 @@ class GatewayServiceConf:
             await self.hostapd_adapter.update(self.micronet_list, self.device_lists)
 
     #
+    # Interface Operations
+    #
+    def get_all_interfaces(self):
+        logger.info (f"GatewayServiceConf.get_all_interfaces()")
+        interfaces = []
+        if self.hostapd_adapter:
+            bss = self.hostapd_adapter.get_status_var('bss')
+            bssid = self.hostapd_adapter.get_status_var('bssid')
+            ssid = self.hostapd_adapter.get_status_var('ssid')
+            sta_count = self.hostapd_adapter.get_status_var('num_sta')
+
+            for n in range(0, len(bss):
+                int_entry = {"medium": "wifi",
+                             "sysname": bss[n],
+                             "macAddress": bssid[n],
+                             "ssid": ssid[n]}
+                interfaces.append(int_entry)
+
+        return jsonify({'interfaces': interfaces), 200
+
+    #
     # micronet Operations
     #
     def check_micronet_reference (self, micronet_id):
