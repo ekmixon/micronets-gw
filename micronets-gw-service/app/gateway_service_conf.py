@@ -76,7 +76,7 @@ class GatewayServiceConf:
 
             for k in bss.keys():
                 int_entry = {"medium": "wifi",
-                             "sysname": bss[k],
+                             "interfaceId": bss[k],
                              "macAddress": bssid[k],
                              "ssid": ssid[k]}
                 logger.info(f"GatewayServiceConf: interface {k}: {json.dumps(int_entry)}")
