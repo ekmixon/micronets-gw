@@ -83,17 +83,22 @@ class GatewayServiceConf:
                 interfaces.append(int_entry)
         return interfaces
 
-    async def get_all_interfaces(self):
+    def retrieve_wired_interfaces(self):
+        interfaces = []
+        # TODO: Implement
+        return interfaces
+
+    async def get_interfaces(self, medium=None):
         logger.info (f"GatewayServiceConf.get_all_interfaces()")
         interfaces = []
-        interfaces += self.retrieve_wireless_interfaces()
-        # TODO: Return wired interfaces
+        if medium and not (medium == "wireless" or medium == "wired"):
+            raise InvalidUsage(404, message=f"interface medium '{medium}' is unknown")
+        if medium is None or medium == "wireless":
+            interfaces += self.retrieve_wireless_interfaces()
+        if medium is None or medium == "wired":
+            interfaces += self.retrieve_wired_interfaces()
 
         return jsonify({'interfaces': interfaces}), 200
-
-    async def get_wireless_interfaces(self):
-        logger.info (f"GatewayServiceConf.get_wireless_interfaces()")
-        return jsonify({'interfaces': self.retrieve_wireless_interfaces()}), 200
 
     #
     # micronet Operations

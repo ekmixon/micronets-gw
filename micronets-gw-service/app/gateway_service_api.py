@@ -127,11 +127,8 @@ def check_vlan (container, field_name, required):
 
 @app.route (api_prefix + '/interfaces', methods=['GET'])
 async def get_interfaces ():
-    return await get_conf_model().get_all_interfaces()
-
-@app.route (api_prefix + '/interfaces/wireless', methods=['GET'])
-async def get_wireless_interfaces ():
-    return await get_conf_model().get_wireless_interfaces()
+    medium_param = request.args.get("medium")
+    return await get_conf_model().get_interfaces(medium=medium_param)
 
 def check_micronet (micronet, micronet_id=None, required=True):
     check_for_unrecognized_entries (micronet, ['micronetId','ipv4Network','nameservers','interface','vlan'])
