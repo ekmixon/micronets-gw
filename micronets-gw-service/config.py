@@ -119,46 +119,42 @@ class DnsmasqDebugConfig (BaseDnsmasqConfig, BaseGatewayConfig):
     DEBUG = True
 
 #
+# Wired-only Configs
+#
+
+# Note: Wired and wireless are not mutually exclusive. These just don't enable wireless.
+
+class LocalWiredTestingConfig (BaseDnsmasqConfig, BaseGatewayConfig):
+    DEBUG = True
+    LOGFILE_MODE = 'w'  # 'w' clears the log at startup, 'a' appends to the existing log file
+    FLOW_ADAPTER_ENABLED = True
+
+class LocalWiredProductionConfig (LocalWiredTestingConfig):
+    DEBUG = False
+    LOGGING_LEVEL = logging.INFO
+    LOGFILE_MODE = 'a'
+
+class WiredTestingConfigWithWebsocket (LocalWiredTestingConfig):
+    WEBSOCKET_CONNECTION_ENABLED = True
+
+class WiredProductionConfigWithWebsocket (LocalWiredProductionConfig):
+    WEBSOCKET_CONNECTION_ENABLED = True
+
+#
 # Wireless Configs
 #
 
-class LocalWirelessTestingConfig (BaseDnsmasqConfig, BaseGatewayConfig):
+class LocalWirelessTestingConfig (LocalWiredTestingConfig):
     DEBUG = True
     LOGFILE_MODE = 'w'  # 'w' clears the log at startup, 'a' appends to the existing log file
     DPP_HANDLER_ENABLED = True
     FLOW_ADAPTER_ENABLED = True
     HOSTAPD_ADAPTER_ENABLED = True
 
-class LocalWirelessProductionConfig (LocalWirelessTestingConfig):
-    DEBUG = False
-    LOGGING_LEVEL = logging.INFO
-    LOGFILE_MODE = 'a'
+class LocalWirelessProductionConfig (LocalWirelessTestingConfig, LocalWiredProductionConfig):
+    pass
 
 class WirelessTestingConfigWithWebsocket (LocalWirelessTestingConfig):
-    WEBSOCKET_CONNECTION_ENABLED = True
-
-class WirelessProductionConfigWithWebsocket (LocalWirelessProductionConfig):
-    WEBSOCKET_CONNECTION_ENABLED = True
-
-#
-# Wired-only Configs
-#
-
-# Note: Wired and wireless are not mutually exclusive. These just disable the wireless components
-
-class LocalWiredTestingConfig (BaseDnsmasqConfig, BaseGatewayConfig):
-    DEBUG = True
-    LOGFILE_MODE = 'w'  # 'w' clears the log at startup, 'a' appends to the existing log file
-    DPP_HANDLER_ENABLED = False
-    FLOW_ADAPTER_ENABLED = True
-    HOSTAPD_ADAPTER_ENABLED = False
-
-class LocalWirelessProductionConfig (LocalWiredTestingConfig):
-    DEBUG = False
-    LOGGING_LEVEL = logging.INFO
-    LOGFILE_MODE = 'a'
-
-class WiredTestingConfigWithWebsocket (LocalWiredTestingConfig):
     WEBSOCKET_CONNECTION_ENABLED = True
 
 class WirelessProductionConfigWithWebsocket (LocalWirelessProductionConfig):

@@ -10,7 +10,7 @@ ExecStart=/opt/micronets-gw/virtualenv/bin/python runner.py --config config.Defa
 # Group=micronets
 StandardOutput=syslog
 StandardError=syslog
-SyslogFacility=none
+# SyslogFacility=none
 SyslogIdentifier=micronets-gw-service
 SyslogLevel=debug
 
