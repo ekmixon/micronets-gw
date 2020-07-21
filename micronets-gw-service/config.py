@@ -118,16 +118,55 @@ class DnsmasqDebugConfig (BaseDnsmasqConfig, BaseGatewayConfig):
     LOGFILE_PATH = None
     DEBUG = True
 
-class DnsmasqTestingConfig (BaseDnsmasqConfig, BaseGatewayConfig):
+#
+# Wireless Configs
+#
+
+class LocalWirelessTestingConfig (BaseDnsmasqConfig, BaseGatewayConfig):
     DEBUG = True
     LOGFILE_MODE = 'w'  # 'w' clears the log at startup, 'a' appends to the existing log file
-    WEBSOCKET_CONNECTION_ENABLED = True
     DPP_HANDLER_ENABLED = True
     FLOW_ADAPTER_ENABLED = True
     HOSTAPD_ADAPTER_ENABLED = True
 
-class DnsmasqProductionConfig (DnsmasqTestingConfig):
+class LocalWirelessProductionConfig (LocalWirelessTestingConfig):
     DEBUG = False
     LOGGING_LEVEL = logging.INFO
     LOGFILE_MODE = 'a'
+
+class WirelessTestingConfigWithWebsocket (LocalWirelessTestingConfig):
+    WEBSOCKET_CONNECTION_ENABLED = True
+
+class WirelessProductionConfigWithWebsocket (LocalWirelessProductionConfig):
+    WEBSOCKET_CONNECTION_ENABLED = True
+
+#
+# Wired-only Configs
+#
+
+# Note: Wired and wireless are not mutually exclusive. These just disable the wireless components
+
+class LocalWiredTestingConfig (BaseDnsmasqConfig, BaseGatewayConfig):
+    DEBUG = True
+    LOGFILE_MODE = 'w'  # 'w' clears the log at startup, 'a' appends to the existing log file
+    DPP_HANDLER_ENABLED = False
+    FLOW_ADAPTER_ENABLED = True
+    HOSTAPD_ADAPTER_ENABLED = False
+
+class LocalWirelessProductionConfig (LocalWiredTestingConfig):
+    DEBUG = False
+    LOGGING_LEVEL = logging.INFO
+    LOGFILE_MODE = 'a'
+
+class WiredTestingConfigWithWebsocket (LocalWiredTestingConfig):
+    WEBSOCKET_CONNECTION_ENABLED = True
+
+class WirelessProductionConfigWithWebsocket (LocalWirelessProductionConfig):
+    WEBSOCKET_CONNECTION_ENABLED = True
+
+#
+# The default configuration (typically referenced by the /lib/systemd/system/micronets-gw.service file)
+#
+class DefaultConfig (LocalWirelessTestingConfig):
+    pass
 
