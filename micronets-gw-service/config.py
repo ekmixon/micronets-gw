@@ -130,6 +130,9 @@ class WirelessGatewayDebugConfig (WirelessGatewayConfig):
     LOGGING_LEVEL = logging.DEBUG
     LOGFILE_MODE = 'w'  # clears the log at startup
 
+class WirelessGatewayDebugConfigNoLogfile (WirelessGatewayDebugConfig):
+    LOGFILE_PATH = None
+
 class WirelessGatewayDebugConfigWithWebsocket (WirelessGatewayDebugConfig, WirelessGatewayConfigWithWebsocket):
     pass
 
@@ -138,37 +141,5 @@ class WirelessGatewayDebugConfigWithWebsocket (WirelessGatewayDebugConfig, Wirel
 #
 class DefaultConfig (WirelessGatewayDebugConfig):
     pass
-
-
-
-
-
-
-
-class LocalDevelopmentConfigWithLocalWebsocket(LocalDevelopmentConfig):
-    WEBSOCKET_CONNECTION_ENABLED = True
-    # Set this iff you want to disable websocket URL lookup using MSO Portal (MSO_PORTAL_WEBSOCKET_LOOKUP_ENDPOINT)
-    #    WEBSOCKET_URL = "wss://ws-proxy-api.micronets.in:5050/micronets/v1/ws-proxy/gw-test/{gateway_id}"
-    WEBSOCKET_URL = "wss://localhost:5050/micronets/v1/ws-proxy/gw/mock-gw"
-
-
-    WEBSOCKET_LOOKUP_URL = 'https://dev.mso-portal-api.micronets.in/portal/v1/socket?gatewayId={gateway_id}'
-
-
-    WEBSOCKET_CONNECTION_ENABLED = False
-    FLOW_ADAPTER_ENABLED = False
-    DPP_HANDLER_ENABLED = False
-    HOSTAPD_ADAPTER_ENABLED = False
-    DPP_HANDLER_SIMULATE_ONBOARD_RESPONSE_EVENTS = False
-    DPP_HANDLER_ENABLED = False
-    HOSTAPD_ADAPTER_ENABLED = False
-    DPP_HANDLER_SIMULATE_ONBOARD_RESPONSE_EVENTS = False
-
-    FLOW_ADAPTER_ENABLED = False
-    DPP_HANDLER_SIMULATE_ONBOARD_RESPONSE_EVENTS = True
-
-
-
-
 
 
