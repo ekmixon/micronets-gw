@@ -537,11 +537,10 @@ class HostapdAdapter:
             return self.success
 
     class DPPSetDPPConfigParamsCommand(HostapdCLICommand):
-        def __init__ (self, configurator_id, qrcode_id, ssid, akms, psk=None, passphrase=None,
+        def __init__ (self, configurator_id, ssid, akms, psk=None, passphrase=None,
                       event_loop=asyncio.get_event_loop()):
             super().__init__(event_loop)
             self.configurator_id = configurator_id
-            self.qrcode_id = qrcode_id
             self.ssid = ssid
             self.psk = psk
             self.passphrase = passphrase

@@ -174,7 +174,7 @@ class DPPHandler(WSMessageHandler, HostapdAdapter.HostapdCLIEventHandler):
         if not self.hostapd_adapter.is_cli_ready():
             return "Hostapd CLI is not ready (hostapd is probably not running)", 500
 
-        logger.info(f"DPPHandler.onboard_device: Issuing DPP onboarding commands for device '{device_id}' in micronet '{micronet_id}...")
+        logger.info(f"DPPHandler.onboard_device: Issuing DPP reprovisioning commands for device '{device_id}' in micronet '{micronet_id}...")
 
         dev_psk = device.get("psk")
         # For now, the psk field is dual-purpose. For WPA2, a <64char "psk" will be converted into a PSK internally
@@ -186,7 +186,18 @@ class DPPHandler(WSMessageHandler, HostapdAdapter.HostapdCLIEventHandler):
             psk = None
             passphrase = dev_psk
 
-        # set dpp_configurator_params "conf=sta-psk ssid=<encoded-ssid> pass=<hex-encoded pass> conn_status=0 group_id=micronet-01"
+        dpp_reprovision_params_cmd = HostapdAdapter.DPPSetDPPConfigParamsCommand(self.dpp_configurator_id, self.ssid,
+                                                                          ["psk"], psk=psk, passphrase=passphrase)
+        await self.hostapd_adapter.send_command(dpp_reprovision_params_cmd)
+        result = await dpp_reprovision_params_cmd.get_response()
+        logger.info(f"{__name__}: Result of setting reprovision params: {result}")
+
+        if await dpp_reprovision_params_cmd.was_successful():
+            logger.info(f"{__name__}: Successfully set reprovisioning credentials for micronet/device {micronet_id}/{device_id}")
+            return '', 200
+        else:
+            logger.info(f"{__name__}: Failed to set reprovisioning credentials for micronet/device {micronet_id}/{device_id}")
+            return f"Could not set DPP V2 reprovisioning credentials for micronet/device {micronet_id}/{device_id}", 400
 
     async def handle_hostapd_cli_event(self, event):
         logger.info(f"DPPHandler.handle_hostapd_cli_event({event})")
