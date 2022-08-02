@@ -81,14 +81,13 @@ class GatewayServiceConf:
         return interfaces
 
     def retrieve_wired_interfaces(self):
-        interfaces = []
         # TODO: Implement
-        return interfaces
+        return []
 
     async def get_interfaces(self, medium=None):
-        logger.info (f"GatewayServiceConf.get_interfaces()")
+        logger.info("GatewayServiceConf.get_interfaces()")
         interfaces = []
-        if medium and not (medium == "wifi" or medium == "wired"):
+        if medium and medium not in ["wifi", "wired"]:
             raise InvalidUsage(404, message=f"interface medium '{medium}' is unknown")
         if medium is None or medium == "wifi":
             interfaces += self.retrieve_wifi_interfaces()
@@ -112,16 +111,16 @@ class GatewayServiceConf:
         if micronet_id in self.micronet_list:
             raise InvalidUsage (409, message=f"micronet '{micronet_id}' already exists")
 
-    def check_micronet_params (self, micronet_to_check, excluded_micronet_id=None):
+    def check_micronet_params(self, micronet_to_check, excluded_micronet_id=None):
         micronet_id_to_check = micronet_to_check ['micronetId']
         ipv4_net_params_to_check = micronet_to_check ['ipv4Network']
         netaddr = ipv4_net_params_to_check ['network']
         netmask = ipv4_net_params_to_check ['mask']
         try:
-            micronet_network_to_check = IPv4Network (netaddr + "/" + netmask, strict=True)
+            micronet_network_to_check = IPv4Network(f"{netaddr}/{netmask}", strict=True)
             if 'gateway' in ipv4_net_params_to_check:
                 gateway_addr = ipv4_net_params_to_check ['gateway']
-                gateway_net = IPv4Network (gateway_addr + "/32")
+                gateway_net = IPv4Network(f"{gateway_addr}/32")
                 if not gateway_net.overlaps (micronet_network_to_check):
                     raise InvalidUsage (400, message=f"Gateway address {gateway_addr} "
                                                      f"isn't in the '{micronet_id_to_check}' "
@@ -139,8 +138,8 @@ class GatewayServiceConf:
             raise InvalidUsage (400, message=f"Error validating micronet '{micronet_id}' "
                                              f"(network {netaddr}/{netmask}): {ve}")
 
-    async def get_all_micronets (self):
-        logger.info (f"GatewayServiceConf.get_all_micronets ()")
+    async def get_all_micronets(self):
+        logger.info("GatewayServiceConf.get_all_micronets ()")
         return jsonify ({'micronets': list (self.micronet_list.values ())}), 200
 
     async def create_micronets (self, micronets):
@@ -222,14 +221,14 @@ class GatewayServiceConf:
                                              f"micronet '{micronet_id}'");
         return device_id
 
-    def check_device_for_micronet (self, device, micronet):
+    def check_device_for_micronet(self, device, micronet):
         ipv4_net_params = micronet ['ipv4Network']
         netaddr = ipv4_net_params ['network']
         netmask = ipv4_net_params ['mask']
         devaddr = device ['networkAddress']['ipv4']
         try:
-            micronet_network = IPv4Network (netaddr + "/" + netmask, strict=True)
-            host_network = IPv4Network (devaddr + "/255.255.255.255")
+            micronet_network = IPv4Network(f"{netaddr}/{netmask}", strict=True)
+            host_network = IPv4Network(f"{devaddr}/255.255.255.255")
             if not micronet_network.overlaps (host_network):
                 raise InvalidUsage (400, message=f"Device '{device ['deviceId']}' address {devaddr} "
                                                  f"isn't compatible with micronet '{micronet ['micronetId']}' "
@@ -371,12 +370,15 @@ class GatewayServiceConf:
         await self.queue_conf_update ()
         return '', 204
 
-    async def process_dhcp_lease_event (self, dhcp_lease_event):
+    async def process_dhcp_lease_event(self, dhcp_lease_event):
         logger.info (f"GatewayServiceConf.process_lease_event ({dhcp_lease_event})")
 
         if not self.ws_connection:
-            logger.info (f"GatewayServiceConf.process_dhcp_lease_event: Ignoring event (No websocket connection)")
-            return f"ignoring event (there's no websocket connection)", 500
+            logger.info(
+                "GatewayServiceConf.process_dhcp_lease_event: Ignoring event (No websocket connection)"
+            )
+
+            return "ignoring event (there's no websocket connection)", 500
 
         event_fields = dhcp_lease_event ['leaseChangeEvent']
         action = event_fields ['action']

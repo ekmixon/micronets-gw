@@ -51,10 +51,10 @@ class HostapdAdapter:
         del self.event_handler_table.remove[handler.type_prefix]
         handler.hostapd_adapter = None
 
-    async def update (self, micronet_list, device_lists):
-        logger.info (f"HostapdAdapter.update()")
+    async def update(self, micronet_list, device_lists):
+        logger.info("HostapdAdapter.update()")
         if not self.hostapd_psk_path:
-            logger.info(f"HostapdAdapter.update: No PSK file configured, so nothing to do")
+            logger.info("HostapdAdapter.update: No PSK file configured, so nothing to do")
 
         with self.hostapd_psk_path.open ('w') as outfile:
             bss_list = list(self.get_status_var('bss').values())
@@ -101,27 +101,29 @@ class HostapdAdapter:
             logger.info ("WROTE HOSTAPD WPA-PSK FILE:")
             logger.info ("------------------------------------------------------------------------")
             for line in infile:
-                logger.info (line[0:-1])
+                logger.info(line[:-1])
             logger.info ("------------------------------------------------------------------------")
 
         if self.cli_ready:
-            logger.info (f"HostapdAdapter.update: Issuing PSK reload command")
+            logger.info("HostapdAdapter.update: Issuing PSK reload command")
             psk_reload_command = await self.send_command(HostapdAdapter.ReloadPSKCLICommand())
             if await psk_reload_command.was_successful():
-                logger.info(f"HostapdAdapter.update: PSK reload successful")
+                logger.info("HostapdAdapter.update: PSK reload successful")
             else:
                 response = await psk_reload_command.get_response()
                 logger.warning(f"HostapdAdapter.update: PSK reload FAILED (received '{response}')")
         else:
-            logger.warning(f"HostapdAdapter.update: Could not issue PSK reload (CLI not ready)")
+            logger.warning(
+                "HostapdAdapter.update: Could not issue PSK reload (CLI not ready)"
+            )
 
     async def connect(self):
-        logger.info(f"HostapdAdapter:connect()")
+        logger.info("HostapdAdapter:connect()")
         if self.cli_connected:
-            logger.info(f"HostapdAdapter:connect: Already connected - returning")
+            logger.info("HostapdAdapter:connect: Already connected - returning")
             return
         if not self.hostapd_cli_path:
-            logger.info(f"HostapdAdapter:connect: hostapd_cli_path not set - returning")
+            logger.info("HostapdAdapter:connect: hostapd_cli_path not set - returning")
             return
         self.event_loop = asyncio.get_event_loop ()
         self.command_queue = Queue()  # https://docs.python.org/3.6/library/queue.html
@@ -133,7 +135,7 @@ class HostapdAdapter:
         self.cli_connected = True
         self.process_reader_thread = threading.Thread(target=self.read_cli_output)
         self.process_reader_thread.start()
-        logger.info(f"HostapdAdapter:connect: Reader thread started")
+        logger.info("HostapdAdapter:connect: Reader thread started")
 
     def is_cli_connected(self):
         return self.cli_connected
@@ -144,7 +146,7 @@ class HostapdAdapter:
     def read_cli_output(self):
         response_data = None
         self.command_queue = Queue()
-        logger.info(f"HostapdAdapter:read_cli_output: Started")
+        logger.info("HostapdAdapter:read_cli_output: Started")
         command = None
         while True:
             try:
@@ -153,14 +155,17 @@ class HostapdAdapter:
                 # logger.debug(f"HostapdAdapter:read_cli_output: Waiting on stdout.readline()...")
                 data = self.hostapd_cli_process.stdout.readline()
                 if not data:
-                    logger.info(f"HostapdAdapter:read_cli_output: Got EOF from hostapd_cli - exiting")
+                    logger.info(
+                        "HostapdAdapter:read_cli_output: Got EOF from hostapd_cli - exiting"
+                    )
+
                     break
                 line = data.decode("utf-8")
                 if len(line) == 0:
                     continue
                 logger.debug(f"HostapdAdapter:read_cli_output: \"{line[:-1]}\"")
                 if not self.cli_ready and self.cli_ready_re.match(line):
-                    logger.info(f"HostapdAdapter:read_cli_output: hostapd CLI is now READY")
+                    logger.info("HostapdAdapter:read_cli_output: hostapd CLI is now READY")
                     self.cli_ready = True
                     asyncio.run_coroutine_threadsafe(self.process_hostapd_ready(), self.event_loop)
                 if not command:
@@ -186,21 +191,18 @@ class HostapdAdapter:
                                                          command.event_loop)
                         response_data = None
                         command = None
-                else:
-                    # This is assuming avents aren't delivered while a command response is being processed
-                    cli_event_match = HostapdAdapter.cli_event_re.match(line)
-                    if cli_event_match:
-                        event_data = cli_event_match.group(2).strip()
-                        asyncio.run_coroutine_threadsafe(self.process_event(event_data), self.event_loop)
+                elif cli_event_match := HostapdAdapter.cli_event_re.match(line):
+                    event_data = cli_event_match.group(2).strip()
+                    asyncio.run_coroutine_threadsafe(self.process_event(event_data), self.event_loop)
             except Exception as ex:
                 logger.warning(f"HostapdAdapter:read_cli_output: Error processing data: {ex}", exc_info=True)
         self.cli_connected = False
         self.cli_ready = False
 
     async def process_hostapd_ready(self):
-        logger.info(f"HostapdAdapter:process_hostapd_ready()")
+        logger.info("HostapdAdapter:process_hostapd_ready()")
         status_cmd = await self.send_command(HostapdAdapter.StatusCLICommand())
-        logger.info (f"HostapdAdapter:process_hostapd_ready: Retrieving status...")
+        logger.info("HostapdAdapter:process_hostapd_ready: Retrieving status...")
         self.status_vars = await status_cmd.get_status_dict()
         for handler in self.event_handler_table:
             asyncio.ensure_future(handler.handle_hostapd_ready())
@@ -208,7 +210,7 @@ class HostapdAdapter:
     async def process_event(self, event_data):
         logger.info(f"HostapdAdapter:process_event: EVENT: (\"{event_data}\")")
         if event_data.startswith("CTRL-EVENT-TERMINATING"):
-            logger.info(f"HostapdAdapter:process_event: hostapd CLI is now NOT READY")
+            logger.info("HostapdAdapter:process_event: hostapd CLI is now NOT READY")
             self.cli_ready = False
         else:
             for handler in self.event_handler_table:
@@ -239,7 +241,7 @@ class HostapdAdapter:
             return await self.response_future
 
         def __str__(self):
-            return type(self).__name__ + ": " + self.get_command_string()
+            return f"{type(self).__name__}: {self.get_command_string()}"
 
     async def send_command(self, command):
         if not isinstance(command, HostapdAdapter.HostapdCLICommand):
@@ -274,8 +276,8 @@ class HostapdAdapter:
             if isinstance (self.hostapdcommand, bytes):
                 return self.hostapdcommand
             compound_command = self.hostapdcommand
-            for arg in self.hostapd_command_args:
-                compound_command = " " + compound_command
+            for _ in self.hostapd_command_args:
+                compound_command = f" {compound_command}"
             return compound_command
 
 
@@ -303,8 +305,9 @@ class HostapdAdapter:
                         (name,val) = line.split("=")
                         if not name or not val:
                             continue
-                        index_match = HostapdAdapter.StatusCLICommand.index_re.match(name)
-                        if index_match:
+                        if index_match := HostapdAdapter.StatusCLICommand.index_re.match(
+                            name
+                        ):
                             name = index_match.group(1)
                             index = int(index_match.group(2))
                             if name not in self.status_vars:
@@ -453,13 +456,13 @@ class HostapdAdapter:
                 akm_str += "+dpp"
             if 'psk' in self.akms:
                 if not (self.psk or self.passphrase):
-                    raise Exception(f"'psk' included in AKMS but no PSK or passphrase provided")
+                    raise Exception("'psk' included in AKMS but no PSK or passphrase provided")
                 akm_str += "+psk"
             if 'sae' in self.akms:
                 if not self.passphrase:
-                    raise Exception(f"'sae' included in AKMS but no passphrase provided")
+                    raise Exception("'sae' included in AKMS but no passphrase provided")
                 akm_str += "+sae"
-            if len(akm_str) == 0:
+            if not akm_str:
                 raise Exception(f"No valid akms elements found (akms: {self.akms})")
             # Note: akm_str will have an extra "+" at the front
             cmd += f" conf=sta-{akm_str[1:]}"
@@ -526,8 +529,9 @@ class HostapdAdapter:
                         if line == "OK":
                             self.success = self.c_sign_key and self.net_access_key and self.dpp_connector
                             continue
-                        sign_response_elem = HostapdAdapter.DPPConfiguratorDPPSignCLICommand.sign_response_re.match(line)
-                        if sign_response_elem:
+                        if sign_response_elem := HostapdAdapter.DPPConfiguratorDPPSignCLICommand.sign_response_re.match(
+                            line
+                        ):
                             (param_name, param_val) = sign_response_elem.groups()
                             if param_name == "DPP-CONNECTOR":
                                 self.dpp_connector = param_val
@@ -535,8 +539,6 @@ class HostapdAdapter:
                                 self.c_sign_key = param_val
                             elif param_name == "DPP-NET-ACCESS-KEY":
                                 self.net_access_key = param_val
-                            else:
-                                pass
                     except Exception as ex:
                         logger.warning(f"DPPConfiguratorDPPSignCLICommand.process_response_data: Error processing status line {line}: {ex}",
                                        exc_info=True)

@@ -23,7 +23,7 @@ class WSMessageHandler:
     async def send_ws_message(self, message):
         message_body = message['message']
         messageType = message_body['messageType']
-        message_body['messageType'] = self.type_prefix + ":" + messageType
+        message_body['messageType'] = f"{self.type_prefix}:{messageType}"
         self.ws_connector.send_message(message)
 
 
@@ -48,8 +48,8 @@ class WSConnector:
     def connect (self):
         asyncio.ensure_future (self.setup_connection ())
 
-    def is_connected (self):
-        return not self.websocket is None
+    def is_connected(self):
+        return self.websocket is not None
 
     def is_ready (self):
         return self.is_connected () and self.hello_received
@@ -76,7 +76,7 @@ class WSConnector:
         await self.websocket.send (message_json)
         return message_id
 
-    async def setup_connection (self):
+    async def setup_connection(self):
         logger.debug ("WSConnector: setup_connection: starting...")
         ssl_context = None
 
@@ -96,15 +96,15 @@ class WSConnector:
             ssl_context.verify_mode = ssl.VerifyMode.CERT_REQUIRED
             ssl_context.check_hostname = False
 
-        while (True):
+        while True:
             # We want to do this lookup/substitution on every connect, in case the
             #  gateway-to-subscriber mapping changes on the portal
             dest_url = None
             try:
-                if self.ws_url:
-                    dest_url = self.ws_url
-                else:
-                    dest_url = await self.get_websocket_url_for_gateway(self.gateway_id)
+                dest_url = self.ws_url or await self.get_websocket_url_for_gateway(
+                    self.gateway_id
+                )
+
                 await self.init_connection (dest_url, ssl_context=ssl_context)
             except Exception as ex:
                 logger.warn (f"WSConnector: setup_connection: Error connecting "
@@ -118,19 +118,19 @@ class WSConnector:
                       asyncio.ensure_future (self.receiver ()) ]
             await asyncio.wait (tasks)
             self.websocket = None
-            logger.info (f"WSConnector: sender/receiver closed. Attempting to reconnect...")
+            logger.info("WSConnector: sender/receiver closed. Attempting to reconnect...")
 
-    async def init_connection (self, dest_uri, ssl_context=None):
+    async def init_connection(self, dest_uri, ssl_context=None):
         logger.info (f"WSConnector: init_connect opening {dest_uri}...")
         self.hello_received = False
         self.websocket = await websockets.connect (dest_uri, ssl=ssl_context)
         logger.info (f"WSConnector: init_connect opened {dest_uri}.")
-        logger.info (f"WSConnector Sending HELLO message...")
+        logger.info("WSConnector Sending HELLO message...")
         await self.send_hello_message (f"gw service {id(self)}")
-        logger.info (f"WSConnector: Waiting for HELLO messages...")
+        logger.info("WSConnector: Waiting for HELLO messages...")
         await self.wait_for_hello_message ()
         self.hello_received = True
-        logger.info (f"WSConnector: HELLO handshake complete.")
+        logger.info("WSConnector: HELLO handshake complete.")
 
     async def get_websocket_url_for_gateway (self, gateway_id):
         logger.info (f"WSConnector: get_websocket_url_for_gateway({gateway_id})...")
@@ -172,20 +172,20 @@ class WSConnector:
         message_id = await self.send_message (message)
         return message_id
 
-    async def wait_for_hello_message (self):
+    async def wait_for_hello_message(self):
         raw_message = await self.websocket.recv ()
         message = json.loads (raw_message)
         logger.debug (f"ws_connector: process_hello_messages: Received message: {message}")
         if (not message):
-            raise Exception (f"message does not appear to be json")
+            raise Exception("message does not appear to be json")
         hello_message = check_json_field (message, 'message', dict, True)
         message_id = check_json_field (hello_message, 'messageId', int, True)
         message_type = check_json_field (hello_message, 'messageType', str, True)
         check_json_field (hello_message, 'requiresResponse', bool, False)
 
-        if (not message_type == "CONN:HELLO"):
+        if message_type != "CONN:HELLO":
             raise Exception (f"Unexpected message while waiting for HELLO: {message_type}")
-        logger.debug (f"ws_connector: process_hello_messages: Received HELLO message")
+        logger.debug("ws_connector: process_hello_messages: Received HELLO message")
 
     async def sender (self):
         logger.debug ("WSConnector: sender: starting...")
@@ -212,10 +212,10 @@ class WSConnector:
         finally:
             logger.debug ("WSConnector: receiver: exiting.")
 
-    async def handle_message (self, raw_message):
+    async def handle_message(self, raw_message):
         message = json.loads (raw_message)
         if (not message):
-            raise Exception (f"message does not appear to be json")
+            raise Exception("message does not appear to be json")
         logger.debug ("WSConnector: handle_message:")
         logger.debug (json.dumps (message, indent=2))
         check_json_field (message, 'message', dict, True)
@@ -268,7 +268,7 @@ class WSConnector:
 
         await self.handle_rest_response (received_message_id, response)
 
-    async def handle_rest_response (self, request_message_id, response):
+    async def handle_rest_response(self, request_message_id, response):
         encoded_payload = None
         if ('Content-Length' in response.headers):
             content_length = int (response.headers ['Content-Length'])
@@ -294,13 +294,15 @@ class WSConnector:
         if encoded_payload:
             message ['dataFormat'] = content_type
             message ['messageBody'] = encoded_payload
-        headers = []
-        for header_name, header_val in response.headers.items ():
-            headers.append ({'name': header_name, 'value': header_val})
+        headers = [
+            {'name': header_name, 'value': header_val}
+            for header_name, header_val in response.headers.items()
+        ]
+
         logger.debug (f"WSConnector: handle_rest_response: found headers: {headers}")
 
         await self.send_message (message)
-        logger.debug (f"WSConnector: handle_rest_response: Response sent.")
+        logger.debug("WSConnector: handle_rest_response: Response sent.")
 
     async def handle_event_message (self, message):
         logger.debug (f"WSConnector: handle EVENT message: {message}")

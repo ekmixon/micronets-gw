@@ -62,7 +62,7 @@ def get_ws_connector():
 def get_dpp_handler():
     return dpp_handler
 
-if not 'DHCP_ADAPTER' in app.config:
+if 'DHCP_ADAPTER' not in app.config:
     exit (f"A DHCP_ADAPTER must be defined in the selected configuration ({app.config})")
 
 subscriber_id = app.config.get('SUBSCRIBER_ID')
@@ -91,7 +91,7 @@ elif adapter == "DNSMASQ":
     logger.info ("Using DNSMASQ adapter")
     dhcp_adapter = DnsMasqAdapter (app.config)
 else:
-    exit ("Unrecognized adapter type ({})".format (adapter))
+    exit(f"Unrecognized adapter type ({adapter})")
 
 from .ws_connector import WSConnector
 
@@ -118,8 +118,7 @@ from .hostapd_adapter import HostapdAdapter
 
 hostapd_adapter = None
 try:
-    hostapd_adapter_enabled = app.config['HOSTAPD_ADAPTER_ENABLED']
-    if hostapd_adapter_enabled:
+    if hostapd_adapter_enabled := app.config['HOSTAPD_ADAPTER_ENABLED']:
         hostapd_cli_path = app.config.get('HOSTAPD_CLI_PATH')
         hostapd_psk_file_path = app.config.get('HOSTAPD_PSK_FILE_PATH')
         logger.info(f"hostapd adapter enabled (hostapd_psk_file_path {hostapd_psk_file_path}"
@@ -136,8 +135,7 @@ from .dpp_handler import DPPHandler
 
 dpp_handler = None
 try:
-    dpp_handler_enabled = app.config['DPP_HANDLER_ENABLED']
-    if dpp_handler_enabled:
+    if dpp_handler_enabled := app.config['DPP_HANDLER_ENABLED']:
         dpp_handler = DPPHandler(app.config, hostapd_adapter)
         if ws_connector:
             ws_connector.register_handler (dpp_handler)

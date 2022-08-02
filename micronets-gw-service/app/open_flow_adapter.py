@@ -40,7 +40,7 @@ class OpenFlowAdapter(HostapdAdapter.HostapdCLIEventHandler):
 
     drop_action = f"output:{diagnostic_port}"
 
-    def __init__ (self, config):
+    def __init__(self, config):
         self.interfaces_file_path = Path (config ['FLOW_ADAPTER_NETWORK_INTERFACES_PATH'])
         self.apply_openflow_command = config['FLOW_ADAPTER_APPLY_FLOWS_COMMAND']
         HostapdAdapter.HostapdCLIEventHandler.__init__(self, None)
@@ -53,8 +53,9 @@ class OpenFlowAdapter(HostapdAdapter.HostapdCLIEventHandler):
                 logger.info (f"OpenFlowAdapter: Loading bridge port {self.interfaces_file_path.absolute ()}")
                 self.read_interfaces_file (infile)
             except Exception as e:
-                raise Exception ("OpenFlowAdapter: Error on line {} of {}: {}"
-                                 .format (infile.line_no, self.interfaces_file_path.absolute (), e))
+                raise Exception(
+                    f"OpenFlowAdapter: Error on line {infile.line_no} of {self.interfaces_file_path.absolute()}: {e}"
+                )
 
     def get_interface_info (self):
         self.mac_for_interface = {}
@@ -72,7 +73,7 @@ class OpenFlowAdapter(HostapdAdapter.HostapdCLIEventHandler):
                 logger.info(f"OpenFlowAdapter:   IP: {ip}")
                 self.ip_for_interface[iface] = ip
 
-    def read_interfaces_file (self, infile):
+    def read_interfaces_file(self, infile):
         cur_interface_block = None
         cur_interface_ovs_type = None
         cur_interface_port_req = 0
@@ -83,43 +84,48 @@ class OpenFlowAdapter(HostapdAdapter.HostapdCLIEventHandler):
             if (comment_line_re.match (line)):
                 continue
 
-            interfaces_iface_header_match = OpenFlowAdapter.interfaces_iface_header_re.match(line)
-            if interfaces_iface_header_match:
+            if interfaces_iface_header_match := OpenFlowAdapter.interfaces_iface_header_re.match(
+                line
+            ):
                 cur_interface_block = interfaces_iface_header_match.group(1)
                 cur_interface_ovs_type = None
                 cur_interface_port_req = 0
                 continue
 
-            interfaces_ovs_type_match = OpenFlowAdapter.interfaces_ovs_type_re.match(line)
-            if interfaces_ovs_type_match:
+            if interfaces_ovs_type_match := OpenFlowAdapter.interfaces_ovs_type_re.match(
+                line
+            ):
                 if not cur_interface_block:
-                    raise Exception(f"Found ovs_type line outside of interface block")
+                    raise Exception("Found ovs_type line outside of interface block")
                 cur_interface_ovs_type = interfaces_ovs_type_match.group(1)
                 if cur_interface_ovs_type == "OVSBridge":
                     self.bridge_name = cur_interface_block
                     logger.info(f"Found OVS Bridge {self.bridge_name}")
 
-            interfaces_ovs_ports_req_match = OpenFlowAdapter.interfaces_ovs_ports_req_re.match (line)
-            if interfaces_ovs_ports_req_match:
+            if interfaces_ovs_ports_req_match := OpenFlowAdapter.interfaces_ovs_ports_req_re.match(
+                line
+            ):
                 if not cur_interface_block:
-                    raise Exception(f"Found ovs_port_req line outside of interface block")
+                    raise Exception("Found ovs_port_req line outside of interface block")
                 port = int(interfaces_ovs_ports_req_match.group(1))
                 logger.info(f"Found OVS Port {port} for interface {cur_interface_block}")
                 self.interface_for_port[port] = cur_interface_block
                 self.port_for_interface[cur_interface_block] = port
                 cur_interface_port_req = port
 
-            interfaces_ovs_ports_match = OpenFlowAdapter.interfaces_ovs_ports_re.match (line)
-            if interfaces_ovs_ports_match:
+            if interfaces_ovs_ports_match := OpenFlowAdapter.interfaces_ovs_ports_re.match(
+                line
+            ):
                 if not cur_interface_block:
-                    raise Exception(f"Found ovs_ports line outside of interface block")
+                    raise Exception("Found ovs_ports line outside of interface block")
                 self.ovs_micronet_interfaces = interfaces_ovs_ports_match.group (1).split ()
                 continue
 
-            interfaces_uplink_port = self.interfaces_ovs_bridge_uplink_re.match (line)
-            if interfaces_uplink_port:
+            if interfaces_uplink_port := self.interfaces_ovs_bridge_uplink_re.match(
+                line
+            ):
                 if not cur_interface_block:
-                    raise Exception(f"Found ovs_bridge_uplink line outside of interface block")
+                    raise Exception("Found ovs_bridge_uplink line outside of interface block")
                 self.ovs_uplink_interface = interfaces_uplink_port.group (1)
                 logger.info(f"Found OVS Uplink Port {self.ovs_uplink_interface} for bridge {cur_interface_block}")
                 continue
@@ -131,22 +137,23 @@ class OpenFlowAdapter(HostapdAdapter.HostapdCLIEventHandler):
             raise Exception (f"Did not find a ovs_bridge_uplink_port entry in {infile}")
         if self.ovs_uplink_interface in self.ovs_micronet_interfaces:
             self.ovs_micronet_interfaces.remove (self.ovs_uplink_interface)
-        ovs_micronet_ports = []
-        for interface in self.ovs_micronet_interfaces:
-            ovs_micronet_ports.append(self.port_for_interface[interface])
+        ovs_micronet_ports = [
+            self.port_for_interface[interface]
+            for interface in self.ovs_micronet_interfaces
+        ]
 
         logger.info (f"OpenFlowAdapter.read_interfaces_file: ovs_uplink_port: {self.ovs_uplink_interface}")
         logger.info (f"OpenFlowAdapter.read_interfaces_file: ovs_micronet_interfaces: {self.ovs_micronet_interfaces}")
         logger.info (f"OpenFlowAdapter.read_interfaces_file: ovs_micronet_ports: {ovs_micronet_ports}")
 
     async def handle_hostapd_ready(self):
-        logger.info(f"OpenFlowAdapter.handle_hostapd_ready()")
+        logger.info("OpenFlowAdapter.handle_hostapd_ready()")
         self.bss = self.hostapd_adapter.get_status_var('bss')
         logger.info(f"OpenFlowAdapter.handle_hostapd_ready:   BSS: {self.bss}")
 
 
-    async def update (self, micronet_list, device_lists):
-        logger.info (f"OpenFlowAdapter.update ()")
+    async def update(self, micronet_list, device_lists):
+        logger.info("OpenFlowAdapter.update ()")
         logger.info (f"OpenFlowAdapter.update: device_lists: {device_lists}")
 
         # Note: These flows are a work-in-progress
@@ -397,16 +404,16 @@ class OpenFlowAdapter(HostapdAdapter.HostapdCLIEventHandler):
                 logger.info ("Issuing new flows:")
                 logger.info ("------------------------------------------------------------------------")
                 for line in infile:
-                    logger.info ("{0:4}: ".format(infile.line_no) + line[0:-1])
+                    logger.info("{0:4}: ".format(infile.line_no) + line[:-1])
                     infile.line_no += 1
                 logger.info ("------------------------------------------------------------------------")
 
             run_cmd = self.apply_openflow_command.format (**{"ovs_bridge": self.bridge_name,
                                                              "flow_file": flow_file_path})
             try:
-                logger.info ("Applying flows using: " + run_cmd)
+                logger.info(f"Applying flows using: {run_cmd}")
                 check_output (run_cmd.split(), stderr=STDOUT)
-                logger.info(f"SUCCESSFULLY APPLIED FLOWS")
+                logger.info("SUCCESSFULLY APPLIED FLOWS")
             except Exception as e:
                 logger.warning(f"ERROR APPLYING FLOWS: {e}")
 
@@ -419,52 +426,42 @@ class OpenFlowAdapter(HostapdAdapter.HostapdCLIEventHandler):
             logger.warning(f"OpenFlowAdapter.create_flows_for_device: Caught exception {ex}", exc_info=True)
 
     def flow_fields_for_ip_host(self, direction, ip_addr, port, protocol):
-        if not (direction == "src" or direction == "dst"):
+        if direction not in ["src", "dst"]:
             raise Exception(f"flow_fields_for_ip_host direction is {direction} (must be 'src' or 'dst')")
-        if not protocol:
-            if ip_addr or port:
-                protocol = "ip,"
-        else:
-            protocol = protocol + ","
+        if protocol:
+            protocol = f"{protocol},"
+        elif ip_addr or port:
+            protocol = "ip,"
         ip_rule = f"ip_{direction}={ip_addr}," if ip_addr else ""
         port_rule = f"tcp_{direction}={port}," if port else ""
-        combined_rule = protocol + ip_rule + port_rule
-        return combined_rule
+        return protocol + ip_rule + port_rule
 
     def flow_fields_for_mac_host(self, direction, mac_addr, port, protocol):
-        if not (direction == "src" or direction == "dst"):
+        if direction not in ["src", "dst"]:
             raise Exception(f"flow_fields_for_ip_host direction is {direction} (must be 'src' or 'dst')")
         if not protocol:
-            if port:
-                protocol = "ip,"
-            else:
-                protocol = ""
+            protocol = "ip," if port else ""
         else:
-            protocol = protocol + ","
+            protocol = f"{protocol},"
         eth_rule = f"eth_{direction}={mac_addr}," if mac_addr else ""
         port_rule = f"tcp_{direction}={port}," if port else ""
-        combined_rule = protocol + eth_rule + port_rule
-        return combined_rule
+        return protocol + eth_rule + port_rule
 
     async def create_out_rules_for_device(self, in_port, device_mac, device, micronet, outfile):
         cur_priority = 850
         device_id = device['deviceId']
         micronet_gateway = micronet['ipv4Network']['gateway']
-        outfile.write(f"  # table={OpenFlowAdapter.from_micronets_table},priority={cur_priority}: "
-                      f"Out-Rules for Device {device['deviceId']} (mac {device_mac})\n")
+        outfile.write(
+            f"  # table={OpenFlowAdapter.from_micronets_table},priority={cur_priority}: Out-Rules for Device {device_id} (mac {device_mac})\n"
+        )
+
         # Always allow a micronet device to talk to the gateway (need to avoid the micronet-to-micronet filters)
         outfile.write(f"add table={OpenFlowAdapter.from_micronets_table},priority={cur_priority}, "
                       f"in_port={in_port},dl_src={device_mac},ip,ip_dst={micronet_gateway}, "
                       f"actions=resubmit(,{OpenFlowAdapter.to_localhost_table})\n\n")
         cur_priority = 800
 
-        out_rules = device.get('outRules', None)
-        if not out_rules:
-            # Allow all data out if no out rules
-            outfile.write(f"add table={OpenFlowAdapter.from_micronets_table},priority={cur_priority}, "
-                          f"in_port={in_port},dl_src={device_mac}, "
-                          f"actions=resubmit(,{OpenFlowAdapter.block_to_micronets_table})\n\n")
-        else:
+        if out_rules := device.get('outRules', None):
             allow_action = f"resubmit(,{OpenFlowAdapter.to_localhost_table})"
             deny_action = OpenFlowAdapter.drop_action
 
@@ -495,7 +492,7 @@ class OpenFlowAdapter(HostapdAdapter.HostapdCLIEventHandler):
                             (port, protocol) = destport_spec_fields.values()
                             field_rules =  self.flow_fields_for_ip_host("dst", None, port, protocol)
                             flowrule = f"add table={OpenFlowAdapter.from_micronets_table},priority={cur_priority}, " \
-                                       f"in_port={in_port},dl_src={device_mac},{field_rules} actions={action}"
+                                           f"in_port={in_port},dl_src={device_mac},{field_rules} actions={action}"
                             logger.info(f"OpenFlowAdapter.create_out_rules_for_device:     flowrule: {flowrule}")
                             outfile.writelines((flowrule, "\n"))
                     elif rule_dest_ip:
@@ -507,7 +504,7 @@ class OpenFlowAdapter(HostapdAdapter.HostapdCLIEventHandler):
                             (ip_addr, port, protocol) = dest_fields.values()
                             field_rules = self.flow_fields_for_ip_host("dst", ip_addr, port, protocol)
                             flowrule = f"add table={OpenFlowAdapter.from_micronets_table},priority={cur_priority}, " \
-                                       f"in_port={in_port},dl_src={device_mac},{field_rules} actions={action}"
+                                           f"in_port={in_port},dl_src={device_mac},{field_rules} actions={action}"
                             logger.info(f"OpenFlowAdapter.create_out_rules_for_device:     flowrule: {flowrule}")
                             outfile.writelines((flowrule, "\n"))
                     elif rule_dest_mac:
@@ -521,20 +518,20 @@ class OpenFlowAdapter(HostapdAdapter.HostapdCLIEventHandler):
                             (mac_addr, port, protocol) = dest_fields.values()
                             field_rules = self.flow_fields_for_mac_host("dst", mac_addr, port, protocol)
                             flowrule = f"add table={OpenFlowAdapter.from_micronets_table},priority={cur_priority}, " \
-                                       f"in_port={in_port},dl_src={device_mac},{field_rules} actions={action}"
+                                           f"in_port={in_port},dl_src={device_mac},{field_rules} actions={action}"
                             logger.info(f"OpenFlowAdapter.create_out_rules_for_device:     flowrule: {flowrule}")
                             outfile.writelines((flowrule, "\n"))
                     else:
                         # Just an action
                         logger.info(f"OpenFlowAdapter.create_out_rules_for_device:     unconditional action: {action}")
-                        if rule_action == "allow":
-                            # A blank "allow" should not enable access to devices in other Micronets
-                            flowrule_action = f"resubmit(,{OpenFlowAdapter.block_to_micronets_table})"
-                        else:
-                            flowrule_action = deny_action
+                        flowrule_action = (
+                            f"resubmit(,{OpenFlowAdapter.block_to_micronets_table})"
+                            if rule_action == "allow"
+                            else deny_action
+                        )
 
                         flowrule = f"add table={OpenFlowAdapter.from_micronets_table},priority={cur_priority}, " \
-                                   f"in_port={in_port},dl_src={device_mac}, actions={flowrule_action}"
+                                       f"in_port={in_port},dl_src={device_mac}, actions={flowrule_action}"
                         logger.info(f"OpenFlowAdapter.create_out_rules_for_device:     flowrule: {flowrule}")
                         outfile.writelines((flowrule, "\n"))
                     cur_priority -= 1
@@ -542,19 +539,21 @@ class OpenFlowAdapter(HostapdAdapter.HostapdCLIEventHandler):
                     logger.warning(f"OpenFlowAdapter.create_out_rules_for_device: Error processing rule {rule}: {ex}",
                                    exc_info=True)
 
+        else:
+            # Allow all data out if no out rules
+            outfile.write(f"add table={OpenFlowAdapter.from_micronets_table},priority={cur_priority}, "
+                          f"in_port={in_port},dl_src={device_mac}, "
+                          f"actions=resubmit(,{OpenFlowAdapter.block_to_micronets_table})\n\n")
+
     async def create_in_rules_for_device(self, in_port, device_mac, device, micronet, outfile):
         cur_priority = 800
         device_id = device['deviceId']
 
-        outfile.write(f"  # table={OpenFlowAdapter.to_micronets_table},priority={cur_priority}: "
-                      f"In-Rules for Device {device['deviceId']} (mac {device_mac})\n")
+        outfile.write(
+            f"  # table={OpenFlowAdapter.to_micronets_table},priority={cur_priority}: In-Rules for Device {device_id} (mac {device_mac})\n"
+        )
 
-        in_rules = device.get('inRules', None)
-        if not in_rules:
-            # Allow all data in if no in rules
-            pass
-            # The default rule (priority 0) will forward all traffic to the right port
-        else:
+        if in_rules := device.get('inRules', None):
             allow_action = f"resubmit(,{OpenFlowAdapter.to_device_table})"
             deny_action = OpenFlowAdapter.drop_action
 
@@ -579,7 +578,7 @@ class OpenFlowAdapter(HostapdAdapter.HostapdCLIEventHandler):
                             (port, protocol) = destport_spec_fields.values()
                             field_rules = self.flow_fields_for_ip_host("dst", None, port, protocol)
                             flowrule = f"add table={OpenFlowAdapter.to_micronets_table},priority={cur_priority}, " \
-                                       f"dl_dst={device_mac},{field_rules} actions={action}"
+                                           f"dl_dst={device_mac},{field_rules} actions={action}"
                             logger.info(f"OpenFlowAdapter.create_in_rules_for_device:     flowrule: {flowrule}")
                             outfile.writelines((flowrule, "\n"))
                     elif rule_src:
@@ -591,14 +590,14 @@ class OpenFlowAdapter(HostapdAdapter.HostapdCLIEventHandler):
                             (ip_addr, port, protocol) = src_fields.values()
                             field_rules = self.flow_fields_for_ip_host("src", ip_addr, port, protocol)
                             flowrule = f"add table={OpenFlowAdapter.to_micronets_table},priority={cur_priority}, " \
-                                       f"dl_dst={device_mac},{field_rules} actions={action}"
+                                           f"dl_dst={device_mac},{field_rules} actions={action}"
                             logger.info(f"OpenFlowAdapter.create_in_rules_for_device:     flowrule: {flowrule}")
                             outfile.writelines((flowrule, "\n"))
                     else:
                         # Just an action
                         logger.info(f"OpenFlowAdapter.create_in_rules_for_device:     unconditional action: {action}")
                         flowrule = f"add table={OpenFlowAdapter.to_micronets_table},priority={cur_priority}, " \
-                                   f"dl_dst={device_mac}, actions={action}"
+                                       f"dl_dst={device_mac}, actions={action}"
                         logger.info(f"OpenFlowAdapter.create_in_rules_for_device:     flowrule: {flowrule}")
                         outfile.writelines((flowrule, "\n"))
                     cur_priority -= 1
@@ -627,10 +626,8 @@ class OpenFlowAdapter(HostapdAdapter.HostapdCLIEventHandler):
                 hostport_spec_list += micronet['nameservers']
             if 'nameservers' in device:
                 hostport_spec_list += device['nameservers']
-            ipv4Network = micronet.get('ipv4Network')
-            if ipv4Network:
-                gateway = ipv4Network.get('gateway')
-                if gateway:
+            if ipv4Network := micronet.get('ipv4Network'):
+                if gateway := ipv4Network.get('gateway'):
                     hostport_spec_list.append(gateway)
             match_action = accept_action
             default_action = OpenFlowAdapter.drop_action
@@ -662,7 +659,7 @@ class OpenFlowAdapter(HostapdAdapter.HostapdCLIEventHandler):
                 portspec = None
                 if len(hostport_split) >= 6:
                     # Looks like a 6-byte MAC address
-                    mac_addr = hostport_spec[0:17]
+                    mac_addr = hostport_spec[:17]
                     portspec = hostport_spec[18:]
                     logger.info(f"OpenFlowAdapter.create_allowdenyhosts_rules_for_device: "
                                 f"processing mac address {mac_addr} with portspec {portspec}")
@@ -678,11 +675,7 @@ class OpenFlowAdapter(HostapdAdapter.HostapdCLIEventHandler):
                     raise Exception(
                         f"Host address/port specification '{hostport_spec}' is invalid")
 
-                if mac_addr:
-                    dest_spec = f"eth_dst={mac_addr}"
-                else:
-                    dest_spec = f"ip,ip_dst={ip_addr}"
-
+                dest_spec = f"eth_dst={mac_addr}" if mac_addr else f"ip,ip_dst={ip_addr}"
                 if not portspec:
                     # Need to create an address-only filter
                     outfile.write(f"add table={OpenFlowAdapter.from_micronets_table},priority={cur_priority}, "

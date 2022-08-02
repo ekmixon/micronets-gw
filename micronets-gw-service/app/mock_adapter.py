@@ -8,10 +8,12 @@ class MockAdapter:
         self.mock_devices_path = Path (base_dir, "mock_devices.json")
         print ("Instantiated MockAdapter")
 
-    def read_from_conf (self):
+    def read_from_conf(self):
         if (self.mock_micronets_path.exists () and self.mock_devices_path.exists ()):
-            print ("MockAdapter: Loading mock micronet data from {} and {}"
-                   .format (self.mock_micronets_path, self.mock_devices_path))
+            print(
+                f"MockAdapter: Loading mock micronet data from {self.mock_micronets_path} and {self.mock_devices_path}"
+            )
+
             with self.mock_micronets_path.open ('r') as infile:
                 micronet_list = json.load (infile)
             with self.mock_devices_path.open ('r') as infile:
@@ -22,9 +24,11 @@ class MockAdapter:
             device_lists = {}
         return {'prefix' : [], 'micronets' : micronet_list, 'devices' : device_lists, 'postfix' : []}
 
-    def save_to_conf (self, micronets, devices):
-        print ("MockAdapter: Saving micronet data to {} and {}"
-               .format (self.mock_micronets_path, self.mock_devices_path))
+    def save_to_conf(self, micronets, devices):
+        print(
+            f"MockAdapter: Saving micronet data to {self.mock_micronets_path} and {self.mock_devices_path}"
+        )
+
         with self.mock_micronets_path.open ('w') as outfile:
             json.dump (micronets, outfile)
         with self.mock_devices_path.open ('w') as outfile:

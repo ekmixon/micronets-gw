@@ -13,7 +13,7 @@ blank_line_re = re.compile ('^\s*$', re.ASCII)
 
 comment_line_re = re.compile ('^\s*\#.*$', re.ASCII)
 
-mac_addr_re = re.compile('^(' + mac_addr_pattern + ')$')
+mac_addr_re = re.compile(f'^({mac_addr_pattern})$')
 
 def check_json_field (json_obj, field, field_type, required):
     '''Thrown an Exception of json_obj doesn't contain field and/or it isn't of type field_type'''
@@ -45,13 +45,13 @@ def merge_deep (dict1, dict2):
             result [key] = deepcopy (dict2 [key])
     return result
 
-def find_micronet_id_for_host (micronets, host_ip_address):
-    host_network = IPv4Network (host_ip_address + "/255.255.255.255")
+def find_micronet_id_for_host(micronets, host_ip_address):
+    host_network = IPv4Network(f"{host_ip_address}/255.255.255.255")
     for micronet_id, micronet in micronets.items ():
         ipv4_net_params = micronet ['ipv4Network']
         netaddr = ipv4_net_params ['network']
         netmask = ipv4_net_params ['mask']
-        micronet_network = IPv4Network (netaddr + "/" + netmask, strict=True)
+        micronet_network = IPv4Network(f"{netaddr}/{netmask}", strict=True)
         if micronet_network.overlaps (host_network):
             return micronet_id
     return None
@@ -79,58 +79,59 @@ async def unroll_hostportspec_list (hostportspec_list):
 portspec_pattern = "(?:(?P<port>[0-9]+)(?:/(?P<protocol>tcp|udp))?)"
 # e.g. 22/tcp, 1000, 1200/udp, /tcp
 
-portspec_re = re.compile ("^" + portspec_pattern + "$")
+portspec_re = re.compile(f"^{portspec_pattern}$")
 
-portlistspec_re = re.compile ("^(?:" + portspec_pattern + ")+$")
+portlistspec_re = re.compile(f"^(?:{portspec_pattern})+$")
 
-async def get_ipv4_hostports_for_hostportspec (hostandportspec):
+async def get_ipv4_hostports_for_hostportspec(hostandportspec):
     if not hostandportspec:
         return []
     hostandport = hostandportspec.split(':')
     if len(hostandport) >= 6:
-        mac_addr = hostandportspec[0:17]
+        mac_addr = hostandportspec[:17]
         portspec = hostandportspec[18:]
         if not mac_addr_re.match(mac_addr):
             raise Exception(f"Mac address specification '{mac_addr}' in host specification '{hostandportspec}' is invalid")
         hostandport_list = []
         if portspec:
             portspec_list = portspec.split(',')
-            for portspec in portspec_list:
-                hostandport_list.append(mac_addr + ":" + portspec)
+            hostandport_list.extend(f"{mac_addr}:{portspec}" for portspec in portspec_list)
         else:
             hostandport_list.append(mac_addr)
     else:
         hostspec = hostandport[0]
-        if len(hostandport) == 2:
-            portspec_list = hostandport[1].split(',')
-        else:
-            portspec_list = None
+        portspec_list = hostandport[1].split(',') if len(hostandport) == 2 else None
         host_addrs = []
         try:
-            net = IPv4Network (hostspec)
-            if net:
+            if net := IPv4Network(hostspec):
                 host_addrs = [str(net)]
         except Exception as ex:
             # If it doesn't work as an IP4 dotted host/network, assume it's a hostname
             addrs = await asyncio.get_event_loop().getaddrinfo (hostspec, None, family=socket.AF_INET,
                                                                 proto=socket.IPPROTO_TCP)
-            for addr in addrs:
-                host_addrs.append (addr[4][0])  # This is just the IP address portion of what's returned
+            host_addrs.extend(addr[4][0] for addr in addrs)
         hostandport_list = []
         for addr in host_addrs:
             if portspec_list:
                 for portspec in portspec_list:
                     if not portspec_re.match(portspec):
                         raise Exception(f"Port specification '{portspec}' in host specification '{hostandportspec}' is invalid")
-                    hostandport_list.append(addr+":"+portspec)
+                    hostandport_list.append(f"{addr}:{portspec}")
             else:
                 hostandport_list.append(addr)
     return hostandport_list
 
-hostportspec_pattern = "(?P<ip_addr>" + ip_addr_pattern + "(?:/\d{1,3})?)" + "(?::" + portspec_pattern + ")?"
+hostportspec_pattern = (
+    f"(?P<ip_addr>{ip_addr_pattern}"
+    + "(?:/\d{1,3})?)"
+    + "(?::"
+    + portspec_pattern
+    + ")?"
+)
+
 # e.g. 1.2.3.4, 1.2.3.4:22/tcp, 1.2.3.0/24:/tcp, 1.2.0.0/16:25,465,587,2525
 
-hostportspec_re = re.compile ("^" + hostportspec_pattern + "$")
+hostportspec_re = re.compile(f"^{hostportspec_pattern}$")
 
 def parse_portspec (portspec):
     m = portspec_re.match(portspec)
@@ -150,10 +151,13 @@ def parse_hostportspec (hostportspec):
         raise Exception(f"host-port specification '{hostportspec}' does not have a port number")
     return hostportspec_elems
 
-macportspec_pattern = "(?P<mac_addr>" + mac_addr_pattern + ")(?::" + portspec_pattern + ")?"
+macportspec_pattern = (
+    f"(?P<mac_addr>{mac_addr_pattern})(?::{portspec_pattern})?"
+)
+
 # e.g. b8:27:eb:75:a4:8b, b8:27:eb:75:a4:8b:22/tcp, b8:27:eb:75:a4:8b:/tcp, b8:27:eb:75:a4:8b:25,465,587,2525
 
-macportspec_re = re.compile ("^" + macportspec_pattern + "$")
+macportspec_re = re.compile(f"^{macportspec_pattern}$")
 
 def parse_macportspec (macportspec):
     m = macportspec_re.match(macportspec)

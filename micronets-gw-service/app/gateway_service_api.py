@@ -62,14 +62,16 @@ def check_for_unrecognized_entries (container, allowed_field_names):
 
 micronet_id_re = re.compile ('^\w+[-.\w]*$', re.ASCII)
 
-def check_micronet_id (micronet_id, location):
+def check_micronet_id(micronet_id, location):
     if not micronet_id_re.match (micronet_id):
-        raise InvalidUsage (400, message="Supplied micronet ID '{}' in '{}' is not alpha-numeric"
-                                         .format (micronet_id, location))
+        raise InvalidUsage(
+            400,
+            message=f"Supplied micronet ID '{micronet_id}' in '{location}' is not alpha-numeric",
+        )
 
 ip_re = re.compile ('^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$', re.ASCII)
 
-def check_ipv4_network (container, micronet_id, required):
+def check_ipv4_network(container, micronet_id, required):
     ipv4_network = check_field (container, 'ipv4Network', (dict, list), required)
     if ipv4_network:
         check_for_unrecognized_entries (ipv4_network, ['network','mask','gateway'])
@@ -78,65 +80,64 @@ def check_ipv4_network (container, micronet_id, required):
         net_mask = check_ipv4_address_field (ipv4_network, 'mask', required)
         if (required or (net_address and net_mask)):
             try:
-                IPv4Network (net_address + "/" + net_mask, strict=True)
+                IPv4Network(f"{net_address}/{net_mask}", strict=True)
             except Exception as ex:
                 raise InvalidUsage (400, message=f"Supplied IP network/mask value '{net_address}/"
                                                  f"{net_mask}' in micronet '{micronet_id}' is not valid: {ex}")
     return ipv4_network
 
-def get_ipv4_address_error (ip_address):
+def get_ipv4_address_error(ip_address):
     if not ip_address:
         return "Address is empty"
     try:
-        addr = IPv4Address (ip_address)
-        if not addr:
+        if addr := IPv4Address(ip_address):
+            return (
+                "Address is a loopback or broadcast address"
+                if addr.is_loopback or addr.is_multicast
+                else None
+            )
+
+        else:
             return "Invalid address"
-        if addr.is_loopback or addr.is_multicast:
-            return "Address is a loopback or broadcast address"
-        return None;
     except Exception as ex:
         return str (ex)
 
-def check_ipv4_address_field (json_obj, ip_addr_field, required):
+def check_ipv4_address_field(json_obj, ip_addr_field, required):
     ip_address = check_field (json_obj, ip_addr_field, str, required)
     if not ip_address and not required:
         return
-    ipv4_address_error = get_ipv4_address_error (ip_address)
-    if (ipv4_address_error):
+    if ipv4_address_error := get_ipv4_address_error(ip_address):
         raise InvalidUsage (400, message=f"Supplied IP address value '{ip_address}' for '{ip_addr_field}'"
                                          f" field in '{json_obj}' is not valid: {ipv4_address_error}")
     return ip_address
 
-def check_nameservers (container, field_name, required):
+def check_nameservers(container, field_name, required):
     nameservers = check_field (container, field_name, (list), required)
     if nameservers:
         for ip_address in nameservers:
-            ipv4_address_error = get_ipv4_address_error (ip_address)
-            if (ipv4_address_error):
+            if ipv4_address_error := get_ipv4_address_error(ip_address):
                 raise InvalidUsage (400, message=f"Supplied IP address value '{ip_address}' in "
                                                  f"'{container}' field '{field_name}' is not valid: "
                                                  f"{ipv4_address_error}")
     return nameservers
 
-def check_vlan (container, field_name, required):
+def check_vlan(container, field_name, required):
     vlan = check_field (container, field_name, int, required)
-    if vlan is not None:
-        if vlan < 1 or vlan > 4094:
-            raise InvalidUsage(400, message=f"Supplied vlan ID '{vlan}' in '{container}' field"
-                                    f"'{field_name}' is not valid: vlans must be between 1 and 4094")
+    if vlan is not None and (vlan < 1 or vlan > 4094):
+        raise InvalidUsage(400, message=f"Supplied vlan ID '{vlan}' in '{container}' field"
+                                f"'{field_name}' is not valid: vlans must be between 1 and 4094")
 
-@app.route (api_prefix + '/interfaces', methods=['GET'])
-async def get_interfaces ():
+@app.route(f'{api_prefix}/interfaces', methods=['GET'])
+async def get_interfaces():
     medium_param = request.args.get("medium")
     return await get_conf_model().get_interfaces(medium=medium_param)
 
-def check_micronet (micronet, micronet_id=None, required=True):
+def check_micronet(micronet, micronet_id=None, required=True):
     check_for_unrecognized_entries (micronet, ['micronetId','ipv4Network','nameservers','interface','vlan'])
     body_micronet_id = check_field (micronet, 'micronetId', str, required)
-    if micronet_id and body_micronet_id:
-        if micronet_id != body_micronet_id:
-            raise InvalidUsage (400, message=f"The micronet ID in the path ('{micronet_id}') must match the one "
-                                             f"in the body ('{body_micronet_id}')")
+    if micronet_id and body_micronet_id and micronet_id != body_micronet_id:
+        raise InvalidUsage (400, message=f"The micronet ID in the path ('{micronet_id}') must match the one "
+                                         f"in the body ('{body_micronet_id}')")
     if body_micronet_id:
         micronet_id = body_micronet_id
     micronet_id = micronet_id.lower ()
@@ -150,8 +151,8 @@ def check_micronets (micronets, required):
     for micronet in micronets:
         check_micronet (micronet, required=required)
 
-@app.route (api_prefix + '/micronets', methods=['POST'])
-async def create_micronets ():
+@app.route(f'{api_prefix}/micronets', methods=['POST'])
+async def create_micronets():
     check_for_json_payload (request)
     top_level = await request.get_json ()
     check_for_unrecognized_entries (top_level, ['micronet', 'micronets'])
@@ -164,16 +165,16 @@ async def create_micronets ():
         check_micronet (micronet, required=True)
         return await get_conf_model ().create_micronet (micronet)
 
-@app.route (api_prefix + '/micronets', methods=['GET'])
-async def get_all_micronets ():
+@app.route(f'{api_prefix}/micronets', methods=['GET'])
+async def get_all_micronets():
     return await get_conf_model ().get_all_micronets ()
 
-@app.route (api_prefix + '/micronets', methods=['DELETE'])
-async def delete_all_micronets ():
+@app.route(f'{api_prefix}/micronets', methods=['DELETE'])
+async def delete_all_micronets():
     return await get_conf_model ().delete_all_micronets ()
 
-@app.route (api_prefix + '/micronets/<micronet_id>', methods=['PUT'])
-async def update_micronet (micronet_id):
+@app.route(f'{api_prefix}/micronets/<micronet_id>', methods=['PUT'])
+async def update_micronet(micronet_id):
     micronet_id = micronet_id.lower ()
     check_for_json_payload (request)
     check_micronet_id (micronet_id, request.path)
@@ -185,14 +186,14 @@ async def update_micronet (micronet_id):
     updated_micronet = await get_conf_model ().update_micronet (micronet, micronet_id)
     return updated_micronet
 
-@app.route (api_prefix + '/micronets/<micronet_id>', methods=['GET'])
-async def get_micronet (micronet_id):
+@app.route(f'{api_prefix}/micronets/<micronet_id>', methods=['GET'])
+async def get_micronet(micronet_id):
     micronet_id = micronet_id.lower ()
     check_micronet_id (micronet_id, request.path)
     return await get_conf_model ().get_micronet (micronet_id)
 
-@app.route (api_prefix + '/micronets/<micronet_id>', methods=['DELETE'])
-async def delete_micronet (micronet_id):
+@app.route(f'{api_prefix}/micronets/<micronet_id>', methods=['DELETE'])
+async def delete_micronet(micronet_id):
     micronet_id = micronet_id.lower()
     check_micronet_id (micronet_id, request.path)
     return await get_conf_model ().delete_micronet (micronet_id)
@@ -221,9 +222,8 @@ def check_wpa_psk(container, field_name, required):
         if len(psk) == 64:
             if not device_wpa_psk_re.match(psk):
                 raise InvalidUsage(400, message=f"Supplied WPA PSK '{psk}' is invalid (must be 64 hex digits)")
-        else:
-            if not device_wpa_passphrase_re.match(psk):
-                raise InvalidUsage(400, message=f"Supplied WPA passphrase '{psk}' is invalid (must be 8-63 ASCII characters)")
+        elif not device_wpa_passphrase_re.match(psk):
+            raise InvalidUsage(400, message=f"Supplied WPA passphrase '{psk}' is invalid (must be 8-63 ASCII characters)")
     return psk
 
 async def check_rules (container, field_name, required):
@@ -233,10 +233,10 @@ async def check_rules (container, field_name, required):
             await check_rule (rule)
     return rules
 
-async def check_rule (rule):
+async def check_rule(rule):
     check_for_unrecognized_entries (rule, ['action', 'sourceIp', 'sourcePort', 'destIp', 'destMac', 'destPort'])
     action = check_field (rule, 'action', str, True)
-    if not (action == "allow" or action == "deny"):
+    if action not in ["allow", "deny"]:
         raise InvalidUsage(400, message=f"Supplied action '{action}' in rule '{rule}' is not valid "
                                         "(allowed actions are 'allow" and 'deny')
 
@@ -282,7 +282,7 @@ def check_portspec (container, field_name, required):
                             f"of '{container}' is not valid: {ex}")
     return portspec
 
-async def check_device (device, required):
+async def check_device(device, required):
     check_for_unrecognized_entries (device, ['deviceId', 'macAddress', 'networkAddress', 'psk', 'outRules', 'inRules',
                                              'allowHosts','denyHosts'])
     device_id = check_field (device, 'deviceId', str, required)
@@ -290,22 +290,22 @@ async def check_device (device, required):
         device_id = device_id.lower ()
         check_device_id (device_id, device)
 
-    mac_address = check_field (device, 'macAddress', (dict, list), required)
-    if not mac_address:
-        if required:
-            raise InvalidUsage (400, message=f"macAddress missing from device '{device_id}'")
-    else:
+    if mac_address := check_field(
+        device, 'macAddress', (dict, list), required
+    ):
         check_for_unrecognized_entries (mac_address, ['eui48'])
         check_mac_address_field (mac_address, 'eui48', required)
 
-    network_address = check_field (device, 'networkAddress', (dict, list), required)
-    if not network_address:
-        if required:
-            raise InvalidUsage (400, message=f"networkAddress missing from device '{device_id}'")
-    else:
+    elif required:
+        raise InvalidUsage (400, message=f"macAddress missing from device '{device_id}'")
+    if network_address := check_field(
+        device, 'networkAddress', (dict, list), required
+    ):
         check_for_unrecognized_entries (network_address, ['ipv4'])
         check_ipv4_address_field (network_address, 'ipv4', required)
 
+    elif required:
+        raise InvalidUsage (400, message=f"networkAddress missing from device '{device_id}'")
     check_wpa_psk (device, 'psk', False)
 
     await check_rules (device, 'outRules', False)
@@ -317,8 +317,8 @@ async def check_devices (devices, required):
     for device in devices:
         await check_device (device, required)
 
-@app.route (api_prefix + '/micronets/<micronet_id>/devices', methods=['POST'])
-async def create_devices (micronet_id):
+@app.route(f'{api_prefix}/micronets/<micronet_id>/devices', methods=['POST'])
+async def create_devices(micronet_id):
     micronet_id = micronet_id.lower ()
     check_for_json_payload (request)
     top_level = await request.get_json ()
@@ -332,20 +332,20 @@ async def create_devices (micronet_id):
         await check_device (device, required=True)
         return await get_conf_model ().create_device (device, micronet_id)
 
-@app.route (api_prefix + '/micronets/<micronet_id>/devices', methods=['GET'])
-async def get_devices (micronet_id):
+@app.route(f'{api_prefix}/micronets/<micronet_id>/devices', methods=['GET'])
+async def get_devices(micronet_id):
     micronet_id = micronet_id.lower ()
     check_micronet_id (micronet_id, request.path)
     return await get_conf_model ().get_all_devices (micronet_id)
 
-@app.route (api_prefix + '/micronets/<micronet_id>/devices', methods=['DELETE'])
-async def delete_devices (micronet_id):
+@app.route(f'{api_prefix}/micronets/<micronet_id>/devices', methods=['DELETE'])
+async def delete_devices(micronet_id):
     micronet_id = micronet_id.lower()
     check_micronet_id (micronet_id, request.path)
     return await get_conf_model ().delete_all_devices (micronet_id)
 
-@app.route (api_prefix + '/micronets/<micronet_id>/devices/<device_id>', methods=['PUT'])
-async def update_device (micronet_id, device_id):
+@app.route(f'{api_prefix}/micronets/<micronet_id>/devices/<device_id>', methods=['PUT'])
+async def update_device(micronet_id, device_id):
     micronet_id = micronet_id.lower ()
     device_id = device_id.lower ()
     check_for_json_payload (request)
@@ -357,24 +357,24 @@ async def update_device (micronet_id, device_id):
     await check_device (device_update, required=False)
     return await get_conf_model ().update_device (device_update, micronet_id, device_id)
 
-@app.route (api_prefix + '/micronets/<micronet_id>/devices/<device_id>', methods=['GET'])
-async def get_device (micronet_id, device_id):
+@app.route(f'{api_prefix}/micronets/<micronet_id>/devices/<device_id>', methods=['GET'])
+async def get_device(micronet_id, device_id):
     micronet_id = micronet_id.lower ()
     device_id = device_id.lower ()
     check_micronet_id (micronet_id, request.path)
     check_device_id (device_id, request.path)
     return await get_conf_model ().get_device (micronet_id, device_id)
 
-@app.route (api_prefix + '/micronets/<micronet_id>/devices/<device_id>', methods=['DELETE'])
-async def delete_device (micronet_id, device_id):
+@app.route(f'{api_prefix}/micronets/<micronet_id>/devices/<device_id>', methods=['DELETE'])
+async def delete_device(micronet_id, device_id):
     micronet_id = micronet_id.lower ()
     device_id = device_id.lower ()
     check_micronet_id (micronet_id, request.path)
     check_device_id (device_id, request.path)
     return await get_conf_model ().delete_device (micronet_id, device_id)
 
-@app.route (api_prefix + '/micronets/<micronet_id>/devices/<device_id>/onboard', methods=['PUT'])
-async def onboard_device (micronet_id, device_id):
+@app.route(f'{api_prefix}/micronets/<micronet_id>/devices/<device_id>/onboard', methods=['PUT'])
+async def onboard_device(micronet_id, device_id):
     micronet_id = micronet_id.lower ()
     device_id = device_id.lower ()
     check_micronet_id (micronet_id, request.path)
@@ -399,11 +399,11 @@ def check_akms (container, field_name, required):
                 raise InvalidUsage (400, message=f"akms entry '{akm}' is invalid (must be one of: {valid_akms})")
     return akms
 
-async def check_lease_event (lease_event):
+async def check_lease_event(lease_event):
     event_fields = check_field (lease_event, 'leaseChangeEvent', dict, True)
     check_for_unrecognized_entries (event_fields, ['action','macAddress','networkAddress','hostname'])
     action = check_field (event_fields, 'action', str, True)
-    if action != "leaseAcquired" and action != "leaseExpired":
+    if action not in ["leaseAcquired", "leaseExpired"]:
         raise InvalidUsage (400, message=f"unrecognized lease action '{action}'"
                                          f" (must be 'leaseAcquired' or 'leaseExpired')")
 
@@ -417,8 +417,8 @@ async def check_lease_event (lease_event):
 
     hostname = check_field (event_fields, 'hostname', str, True)
 
-@app.route (api_prefix + '/leases', methods=['PUT'])
-async def process_lease ():
+@app.route(f'{api_prefix}/leases', methods=['PUT'])
+async def process_lease():
     check_for_json_payload (request)
     lease_event = await request.get_json ()
     await check_lease_event (lease_event)

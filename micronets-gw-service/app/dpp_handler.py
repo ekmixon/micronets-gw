@@ -162,7 +162,7 @@ class DPPHandler(WSMessageHandler, HostapdAdapter.HostapdCLIEventHandler):
                                                                   f"DPP Onboarding Complete ({event})"))
 
     async def handle_hostapd_ready(self):
-        logger.info(f"DPPHandler.handle_hostapd_ready()")
+        logger.info("DPPHandler.handle_hostapd_ready()")
 
         self.ssid = self.hostapd_adapter.get_status_var('ssid')[0]
         logger.info(f"DPPHandler.handle_hostapd_ready:   SSID: {self.ssid}")
@@ -194,7 +194,10 @@ class DPPHandler(WSMessageHandler, HostapdAdapter.HostapdCLIEventHandler):
                 logger.info(f"DPPHandler.handle_hostapd_ready: Loaded AP Connector from {self.dpp_ap_connector_file}")
             else:
                 # Create the AP's connector and persist it
-                logger.info(f"DPPHandler: handle_hostapd_ready: Creating a DPP Connector for the AP")
+                logger.info(
+                    "DPPHandler: handle_hostapd_ready: Creating a DPP Connector for the AP"
+                )
+
                 dpp_config_sign_cmd = HostapdAdapter.DPPConfiguratorDPPSignCLICommand(self.dpp_configurator_id, self.ssid)
                 await self.hostapd_adapter.send_command(dpp_config_sign_cmd)
                 dpp_connector = await dpp_config_sign_cmd.get_connector()
@@ -222,7 +225,7 @@ class DPPHandler(WSMessageHandler, HostapdAdapter.HostapdCLIEventHandler):
     async def send_dpp_onboard_event(self, micronet, device, event_name, reason=None):
         ws_connector = get_ws_connector()
         if not ws_connector:
-            return f"No websocket connector configured", 500
+            return "No websocket connector configured", 500
         if not ws_connector.is_ready():
             ws_uri = ws_connector.get_connect_uri()
             logger.info (f"DPPHandler.send_dpp_onboard_event: websocket not connected (ws uri: {ws_uri})")
@@ -237,7 +240,7 @@ class DPPHandler(WSMessageHandler, HostapdAdapter.HostapdCLIEventHandler):
                                           } }
         if reason:
             dpp_onboarding_complete_event[event_name]['reason'] = reason
-        logger.info (f"DPPHandler.send_dpp_onboard_event: sending:")
+        logger.info("DPPHandler.send_dpp_onboard_event: sending:")
         logger.info (json.dumps (dpp_onboarding_complete_event, indent=4))
         await ws_connector.send_event_message ("DPP", event_name, dpp_onboarding_complete_event)
 

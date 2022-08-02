@@ -25,12 +25,9 @@ logging.basicConfig (level=logging_level, filename=logging_filename, filemode=lo
 
 logger = logging.getLogger ('dnsmasq-lease-notify')
 
-def get_env (var_name):
+def get_env(var_name):
     env = os.environ
-    if not var_name in env:
-        return None
-    else:
-        return env [var_name]
+    return None if var_name not in env else env [var_name]
 
 def post_lease_event (event_json):
     conn = http.client.HTTPConnection (lease_notifiction_host)
@@ -45,15 +42,20 @@ if __name__ == '__main__':
     mac_address = sys.argv [2]
     ip_address = sys.argv [3]
     hostname = sys.argv [4]
-    logger.debug ("{}: action: {}, mac_address: {}, ip_address {}, hostname {}"
-                       .format (program, action, mac_address, ip_address, hostname))
-    logger.debug ("PWD: {}".format (get_env ('PWD')))
-    logger.debug ("DNSMASQ_LEASE_LENGTH: {}".format (get_env ('DNSMASQ_LEASE_LENGTH')))
-    logger.debug ("DNSMASQ_LEASE_EXPIRES: {}".format (get_env ('DNSMASQ_LEASE_EXPIRES')))
-    logger.debug ("DNSMASQ_TIME_REMAINING: {}".format (get_env ('DNSMASQ_TIME_REMAINING')))
-    logger.debug ("DNSMASQ_SUPPLIED_HOSTNAME: {}".format (get_env ('DNSMASQ_SUPPLIED_HOSTNAME')))
-    logger.debug ("DNSMASQ_INTERFACE: {}".format (get_env ('DNSMASQ_INTERFACE')))
-    logger.debug ("DNSMASQ_TAGS: {}".format (get_env ('DNSMASQ_TAGS')))
+    logger.debug(
+        f"{program}: action: {action}, mac_address: {mac_address}, ip_address {ip_address}, hostname {hostname}"
+    )
+
+    logger.debug(f"PWD: {get_env('PWD')}")
+    logger.debug(f"DNSMASQ_LEASE_LENGTH: {get_env('DNSMASQ_LEASE_LENGTH')}")
+    logger.debug(f"DNSMASQ_LEASE_EXPIRES: {get_env('DNSMASQ_LEASE_EXPIRES')}")
+    logger.debug(f"DNSMASQ_TIME_REMAINING: {get_env('DNSMASQ_TIME_REMAINING')}")
+    logger.debug(
+        f"DNSMASQ_SUPPLIED_HOSTNAME: {get_env('DNSMASQ_SUPPLIED_HOSTNAME')}"
+    )
+
+    logger.debug(f"DNSMASQ_INTERFACE: {get_env('DNSMASQ_INTERFACE')}")
+    logger.debug(f"DNSMASQ_TAGS: {get_env('DNSMASQ_TAGS')}")
     if action == "old":
         logger.debug(f"Ignoring action {action}")
         exit (0)
@@ -68,7 +70,7 @@ if __name__ == '__main__':
                               "hostname": hostname}
                          }
     lease_change_event_json = json.dumps (lease_change_event)
-    logger.debug ("Sending event: {}".format (lease_change_event_json))
+    logger.debug(f"Sending event: {lease_change_event_json}")
 
     response = post_lease_event (lease_change_event_json)
-    logger.debug ("Received response: {}".format (response.read ()))
+    logger.debug(f"Received response: {response.read()}")

@@ -66,7 +66,7 @@ class DnsMasqAdapter:
         logger.info  (f"Instantiated DnsMasq with conf file {self.conffile_path.absolute()}")
         logger.info  (f"dnsmasq lease script location: {self.lease_script.absolute()}")
 
-    def read_from_conf (self):
+    def read_from_conf(self):
         with self.conffile_path.open ('r') as infile:
             try:
                 infile.line_no = 0
@@ -76,8 +76,9 @@ class DnsMasqAdapter:
                 devices = read_conf ['devices']
                 return {"micronets": micronets, "devices": devices}
             except Exception as e:
-                raise Exception ("DnsMasqAdapter: Error on line {} of {}: {}"
-                                 .format (infile.line_no, self.conffile_path.absolute (), e))
+                raise Exception(
+                    f"DnsMasqAdapter: Error on line {infile.line_no} of {self.conffile_path.absolute()}: {e}"
+                )
 
     def parse_conffile (self, infile):
         micronets = {}
