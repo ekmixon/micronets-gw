@@ -32,7 +32,7 @@ python-socketio==4.3.1
   python-engineio==3.9.3
     six==1.12.0
   six==1.12.0
-Quart==0.6.6
+Quart==0.19.7
   aiofiles==0.4.0
   blinker==1.4
   Click==7.0
